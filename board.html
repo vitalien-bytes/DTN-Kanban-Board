@@ -3,40 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DTN SmartOps Board</title>
+  <title>DTN SmartOps</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
 
+<body>
 <header class="topbar">
   <div class="brand">
-    <img src="logo.png" alt="Logo" class="logo"/>
+    <img src="logo.png" alt="Logo DTN" class="logo"/>
     <div class="brand-title">DTN <span class="accent">SmartOps</span></div>
   </div>
 </header>
 
 <div class="export-bar">
-  <button onclick="addColumn()" class="btn btn-primary">+ Ajouter colonne</button>
-  <button onclick="exportJSON()" class="btn">💾 Sauvegarde (JSON)</button>
+  <button onclick="addColumn()" class="btn btn-primary">+ Ajouter une colonne</button>
+  <button onclick="openClientModal()" class="btn btn-accent">+ Nouveau client</button>
+  <button onclick="exportJSON()" class="btn">💾 Télécharger board.json</button>
   <button onclick="logout()" class="btn btn-danger">Déconnexion</button>
 </div>
 
 <main id="board" class="board-container"></main>
 
-<!-- MODAL AJOUT CLIENT -->
-<div id="clientModal" class="modal">
+<!-- Modal création client -->
+<div id="client-modal" class="modal">
   <div class="modal-card">
-    <h3>Nouveau Client</h3>
-    <form onsubmit="createClient(event)">
-      <input id="m-lastname" placeholder="Nom" required />
-      <input id="m-firstname" placeholder="Prénom" required />
-      <input id="m-tel" placeholder="TéléPhone" />
-      <input id="m-address" placeholder="Adresse" />
-      <input id="m-email" type="email" placeholder="Email" />
-      <textarea id="m-comment" placeholder="Commentaire…" rows="3"></textarea>
+    <h3>Créer un client</h3>
+    <form id="client-form">
+      <input name="lastname" placeholder="Nom" required />
+      <input name="firstname" placeholder="Prénom" required />
+      <input name="tel" placeholder="Téléphone" />
+      <input name="address" placeholder="Adresse postale" />
+      <input name="email" type="email" placeholder="Adresse mail" />
+      <textarea name="comment" placeholder="Commentaire…" rows="3"></textarea>
 
-      <select id="m-work">
-        <option>Fibre optique / TéléCom</option>
+      <select name="work">
+        <option>Fibre optique / Télécom</option>
         <option>Électricité générale</option>
         <option>IRVE / Borne de recharge</option>
         <option>Photovoltaïque</option>
@@ -46,188 +47,14 @@
       </select>
 
       <div class="modal-actions">
-        <button type="button" onclick="closeModal()" class="btn">Annuler</button>
+        <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer</button>
       </div>
     </form>
   </div>
 </div>
-<div id="modalBackdrop" class="backdrop" onclick="closeModal()"></div>
+<div id="modalBackdrop" class="backdrop" onclick="closeClientModal()"></div>
 
-<script>
-// 🔐 Protection accès direct
-if(!localStorage.getItem("auth")) {
-  const p = prompt("Mot de passe requis 🔐");
-  if(p === "DTN-2025-secure-base") localStorage.setItem("auth","1");
-  else location.href="index.html";
-}
-
-// Chargement / save mémoire locale
-let boardData = JSON.parse(localStorage.getItem("kanbanData") || '{"columns":[]}');
-
-// Colonnes par défaut si 1ere ouverture
-if(boardData.columns.length === 0) {
-  boardData.columns = [
-    { id:"col-1", name:"À faire", cards:[] },
-    { id:"col-2", name:"En cours", cards:[] },
-    { id:"col-3", name:"Terminé", cards:[] }
-  ];
-  saveBoard();
-}
-
-// Ouvrir / fermer modal
-function openModal() {
-  document.getElementById("clientModal").style.display = "flex";
-  document.getElementById("modalBackdrop").classList.add("show");
-}
-function closeModal() {
-  document.getElementById("clientModal").style.display = "none";
-  document.getElementById("modalBackdrop").classList.remove("show");
-}
-
-// Ajouter colonne
-function addColumn() {
-  const name = prompt("Nom de la nouvelle colonne :");
-  if(!name) return;
-  boardData.columns.push({ id:Date.now().toString(), name, cards:[] });
-  localStorage.setItem("kanbanData", JSON.stringify(board.data || "{}"));
-  saveBoard();
-  renderBoard();
-}
-
-// Créer un client (ajout dans 1ere colonne = À faire)
-function createClient(ev) {
-  ev.preventDefault();
-  const client = {
-    id: Date.now().toString(),
-    lastname: document.getElementById("m-lastname").value,
-    firstname: document.getElementById("m-firstname").value,
-      phone: document.getElementById("m-tel").value
-      + ' ' + document.querySelector("[name=phone]").value,
-      email: document.getElementById("m-email").value?.trim() || "",
-      address: document.getElementById("m-address").value?.trim() || "",
-      phone: document.getElementById("m-tel").value?.trim() || "",
-      cmt: clientData.comment || clientData.comment || "",
-      works: document.getElementById("m-lastname")?.value || ""
-  };
-  const col0 = boardData.columns[0];
-  col0.cards.push(client);
-  saveBoard();
-  renderBoard();
-  closeModal();
-}
-
-// Render board + Drag & Drop
-function renderBoard() {
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-
-  boardData.columns.forEach((col, colIndex) => {
-    const div = document.createElement("div");
-    div.className = "column";
-    div.innerHTML = `
-      <div class="column-head">
-        <h3>${col.name}</h3>
-        <button class="icon-btn" onclick="editColumn('${col.id}')">⋮</button>
-        <div class="menu-list" id="menu-${col.id}">
-          <button onclick="renameColumn('${col.id}')">Renommer</button>
-          <button onclick="deleteColumn('${col.id}')">Supprimer</button>
-        </div>
-      </div>
-      <div class="cards" id="cards-${col.id}" 
-        ondrop="dropClient(event, ${colIndex})"
-        ondragover="event.preventDefault()"
-      ></div>
-    `;
-    board.appendChild(div);
-
-    const container = document.getElementById(`cards-${col.id}`);
-    col.cards.forEach(client => {
-      const c = document.createElement("div");
-      c.className = "card";
-      c.draggable = true;
-      c.ondragstart = ev => {
-        ev.dataTransfer.setData("clientId", client.id);
-        ev.dataTransfer.setData("fromColumnIndex", colIndex);
-      };
-
-      c.innerHTML = `
-        <div class="card-name">${client.lastname} ${underKey}</div>
-          <div class="card-meta">
-            <span class="chip">📞 ${client.email}</span>
-          </div>
-          <h3 class="text-lg font-bold">${boardData.title}</h3>
-          <p>${boardData.description}</p>
-          <p>${col.name}</p>
-            <span class="chip">📧 ${client.email}</span>
-            <span class="chip">📍 ${client.city}</span>
-          </div>
-        </div>
-`;
-    board.appendChild(col);
-
-      container.appendChild(col.cards);
-    });
-  });
-
-}
-
-// Menu colonne controls
-function renameColumn(id) {
-  const newName = prompt("📝 Nouveau nom de colonne :");
-  if(!newName) return;
-  const col = boardData.columns.find(c => c.id === id);
-  if(col) col.name = newName;
-  saveBoard();
-  renderBoard();
-}
-
-function deleteColumn(id) {
-  if(!confirm("❗ Tu confirmes la suppression ?")) return;
-  boardData.columns = boardData.columns.filter(c => c.id !== id);
-  saveBoard();
-  renderBoard();
-}
-
-// Déplacer un client entre colonnes
-function dropClient(ev, toColumnIndex) {
-  const clientId = ev.dataTransfer.getData("clientId");
-  const fromColIndex = ev.dataTransfer.getData("fromColumnIndex");
-
-  const client = boardData.columns[fromColIndex].cards.find(c => c.id === clientId);
-  if(!client) return;
-
-  boardData.columns[fromColIndex].cards = boardData.columns[fromColIndex].cards.filter(c => c.id !== clientId);
-  boardData.columns[toColumnIndex].cards.push(client);
-
-  saveBoard();
-  renderBoard();
-}
-
-// Sauvegarde board
-function saveBoard() {
-  localStorage.setItem("kanbanData", JSON.stringify(boardData));
-}
-
-// Export JSON
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(boardData, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "board-data.json";
-  a.click();
-}
-
-// Déconnexion
-function logout() {
-  localStorage.clear();
-  sessionStorage.clear();
-  location.href = "index.html";
-}
-
-// 1er rendu
-renderBoard();
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
