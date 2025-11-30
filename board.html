@@ -51,6 +51,10 @@
 </div>
 
 <script>
+/* ============================
+   DTN SMARTOPS – LOGIQUE KANBAN
+============================== */
+
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
 if (!boardData) {
@@ -67,6 +71,46 @@ if (!boardData) {
 function saveBoard() {
   localStorage.setItem("boardData", JSON.stringify(boardData));
 }
+
+/* ---------- MODALE NOUVEAU CLIENT ---------- */
+
+function openClientModal() {
+  document.getElementById("clientModal").classList.add("open");
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").classList.remove("open");
+}
+
+function createClient(e) {
+  e.preventDefault();
+
+  const newClient = {
+    id: Date.now().toString(),
+    lastname: document.getElementById("lastname").value.trim(),
+    firstname: document.getElementById("firstname").value.trim(),
+    tel: document.getElementById("tel").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    work: document.getElementById("work").value,
+    comment: document.getElementById("comment").value.trim()
+  };
+
+  // On met le nouveau client dans la première colonne "À faire"
+  if (!boardData.columns[0]) {
+    boardData.columns.push({ id: "col-1", name: "À faire", cards: [] });
+  }
+  boardData.columns[0].cards.push(newClient);
+
+  saveBoard();
+  renderBoard();
+  closeClientModal();
+
+  // Reset des champs
+  e.target.reset();
+}
+
+/* ---------- RENDU DU BOARD ---------- */
 
 function renderBoard() {
   const board = document.getElementById("kanban-board");
@@ -93,7 +137,7 @@ function renderBoard() {
 
     const cardsDiv = document.getElementById(`cards-${col.id}`);
 
-    // drag & drop support colonne
+    // drag & drop sur la colonne
     cardsDiv.ondragover = ev => ev.preventDefault();
     cardsDiv.ondrop = ev => {
       const cardId = ev.dataTransfer.getData("clientId");
@@ -101,6 +145,7 @@ function renderBoard() {
       moveClient(cardId, fromCol, col.id);
     };
 
+    // cartes clients
     col.cards.forEach(client => {
       const card = document.createElement("div");
       card.className = "card";
@@ -131,6 +176,8 @@ function renderBoard() {
   });
 }
 
+/* ---------- DRAG & DROP ---------- */
+
 function moveClient(clientId, fromColIndex, toColId) {
   const fromCol = boardData.columns[fromColIndex];
   const toCol = boardData.columns.find(c => c.id === toColId);
@@ -145,6 +192,8 @@ function moveClient(clientId, fromColIndex, toColId) {
   saveBoard();
   renderBoard();
 }
+
+/* ---------- COLONNES ---------- */
 
 function addClientPrompt(colIndex) {
   const col = boardData.columns[colIndex];
@@ -184,6 +233,8 @@ function removeColumn(colId) {
   renderBoard();
 }
 
+/* ---------- CARTES CLIENTS ---------- */
+
 function editCard(colId, clientId) {
   const col = boardData.columns.find(c => c.id === colId);
   const client = col.cards.find(c => c.id == clientId);
@@ -202,15 +253,22 @@ function deleteCard(colId, clientId) {
   alert("Client supprimé ✔️");
 }
 
+/* ---------- MENUS 3 POINTS ---------- */
+
 function toggleMenu(id, event) {
   event.stopPropagation();
-  document.getElementById(id)?.classList.toggle("open");
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const isOpen = menu.classList.contains("open");
+  document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
+  if (!isOpen) menu.classList.add("open");
 }
 
 document.body.addEventListener("click", () => {
   document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
 });
 
+/* ---------- INIT ---------- */
 renderBoard();
 </script>
 
