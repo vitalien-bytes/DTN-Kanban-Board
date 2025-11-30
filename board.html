@@ -1,195 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DTN SmartOps Board</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="light">
 
-<header class="board-header">
-  <h1>Board Clients :contentReference[oaicite:1]{index=1}</h1>
-  <button class="logout-btn" onclick="logout()">Déconnexion</button>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" alt="DTN SmartOps" class="logo"/>
+    <span class="brand-title"><b>DTN</b><span class="accent"> SmartOps</span></span>
+  </div>
+  <div class="actions">
+    <input id="newColumnName" class="input" placeholder="Nom de la colonne…" />
+    <button id="addColumnBtn" class="btn btn-primary">Ajouter colonne</button>
+    <button onclick="openModal()" class="btn btn-accent">+ Nouveau client</button>
+  </div>
 </header>
 
-<!-- COLONNES côte à côte -->
-<div class="board-container">
+<main id="board" class="board"></main>
 
-  <div class="column" id="col-todo" data-key="todo">
-    <h2>À faire</h2>
-    <button class="add-btn" onclick="openModal()">+ Nouveau Client</button>
-    <div class="cards"></div>
-  </div>
-
-  <div class="column" id="col-doing" data-key="doing">
-    <h2>En cours</h2>
-    <div class="cards"></div>
-  </div>
-
-  <div class="column" id="col-done" data-key="done">
-    <h2>Terminé</h2>
-    <div class="cards"></div>
-  </div>
-
-</div>
-
-<!-- MODAL (fenêtre popup) pour nouveau client -->
+<!-- MODALE NOUVEAU CLIENT -->
 <div id="clientModal" class="modal">
   <div class="modal-content">
-    <h3>Ajouter un Client — :contentReference[oaicite:2]{index=2}</h3>
+    <h3>Créer un Client</h3>
 
-    <label>Nom :</label>
-    <input type="text" id="m-lastname"/>
+    <form id="clientForm">
+      <input name="lastname" placeholder="Nom" required />
+      <input name="firstname" placeholder="Prénom" required />
+      <input name="tel" placeholder="Téléphone" />
+      <input name="address" placeholder="Adresse postale" />
+      <input name="email" type="email" placeholder="Adresse mail" />
+      <textarea name="comment" placeholder="Commentaire…" rows="3"></textarea>
 
-    <label>Prénom :</label>
-    <input type="text" id="m-firstname"/>
+      <select name="work">
+        <option>Fibre (Télécom)</option>
+        <option>Électricité générale</option>
+        <option>IRVE (Borne recharge)</option>
+        <option>Photovoltaïque</option>
+        <option>Terrassement / Génie civil</option>
+        <option>Détection réseaux / regard</option>
+        <option>Autres</option>
+      </select>
 
-    <label>Téléphone :</label>
-    <input type="text" id="m-tel"/>
-
-    <label>Adresse :</label>
-    <input type="text" id="m-address"/>
-
-    <label>Email :</label>
-    <input type="text" id="m-email"/>
-
-    <label>Type de travaux :</label>
-    <select id="m-work">
-      <option value="Fibre optique">Installation Fibre Optique</option>
-      <option value="Électricité">Électricité Générale</option>
-      <option value="IRVE">Bornes Recharge IRVE</option>
-      <option value="PV">Panneaux Photovoltaïques</option>
-      <option value="Télécom cuivre">Télécom Cuivre / ADSL</option>
-      <option value="Terrassement">Terrassement / Génie Civil</option>
-      <option value="Détection regard">Détection regard / Réseaux</option>
-      <option value="Autres">Autres</option>
-    </select>
-
-    <br/><br/>
-    <button onclick="addClient()">Créer</button>
-    <button onclick="closeModal()">Annuler</button>
+      <div class="form-actions">
+        <button type="button" onclick="closeModal()" class="btn btn-danger">Annuler</button>
+        <button type="submit" class="btn btn-primary">Créer</button>
+      </div>
+    </form>
   </div>
 </div>
+<div id="modalBackdrop" class="backdrop"></div>
 
-<!-- BARRE EXPORT JSON -->
+<!-- EXPORT JSON -->
 <div class="export-bar">
-  <button onclick="exportData()">💾 Télécharger clients.json</button>
+  <button onclick="exportJSON()" class="btn">💾 Télécharger board-data.json</button>
+  <button onclick="logout()" class="btn btn-danger">Déconnexion</button>
 </div>
 
 <script>
-// 🔐 Protection accès
-if (localStorage.getItem("auth") !== "true") {
-  document.body.innerHTML = "<h2>Accès refusé 🔐</h2>";
+// 🔐 Protection accès par mot de passe déjà ok
+if(!sessionStorage.getItem("auth")) {
+  const p = prompt("Mot de passe requis :");
+  if(p === "DTN-2025-secure-base") sessionStorage.setItem("auth","1");
+  else location.href="index.html";
 }
 
-// 📦 Données stockées
-let clients = JSON.parse(localStorage.getItem("clients-data") || '{"todo":[],"doing":[],"done":[]}');
+// Donnes boardData local
+let boardData = JSON.parse(localStorage.getItem("kanbanData") || '{"columns":[]}');
 
-function saveClients() {
-  localStorage.setItem("clients-data", JSON.stringify(clients));
+function openModal() {
+  document.getElementById("clientModal").classList.add("open");
 }
 
 function openModal() {
-  document.getElementById("clientModal").style.display = "flex";
+  document.getElementById("clientModal").classList.add("open");
 }
 
 function closeModal() {
-  document.getElementById("clientModal").style.display = "none";
+  document.getElementById("clientModal").classList.remove("open");
 }
 
 function closeModal() {
-  document.getElementById("clientModal").style.display = "none";
+  document.getElementById("clientModal").classList.remove("open");
 }
 
-function addClient() {
+// Colonnes : ajout
+document.getElementById("addColumnBtn").onclick = () => {
+  const name = document.getElementById("newColumnName").value.trim();
+  if(!name) return;
+  boardData.columns.push({name, cards: []});
+  localStorage.setItem("kanbanData", JSON.stringify(boardData));
+  localStorage.setItem("kanbanData", JSON.stringify(boardData));
+  localStorage.setItem("kanbanData", JSON.stringify(boardData));
   renderBoard();
 }
 
-// Ajouter le client
-function addClient() {
-  const last = document.getElementById("m-lastname").value.trim();
-  const first = document.getElementById("m-firstname").value.trim();
-  const tel = document.getElementById("m-tel").value.trim();
-  const addr = document.getElementById("m-address").value.trim();
-  const mail = document.getElementById("m-email").value.trim();
-  const work = document.getElementById("m-work").value;
-
-  if (!last || !first) {
-    alert("Nom et prénom obligatoires ❌");
-    return;
-  }
-
-  const card = `👤 ${last} ${first}\n📞 ${tel}\n🏠 ${addr}\n📧 ${mail}\n🛠 ${work}`;
-  clients.todo.push(card);
-  saveClients();
-  closeModal();
-  renderBoard();
-}
-
-// Rendu du board
-function renderBoard() {
-  document.querySelector("#col-todo .cards").innerHTML = "";
-  document.querySelector("#col-doing .cards").innerHTML = "";
-  document.querySelector("#col-done .cards").innerHTML = "";
-
-  clients.todo.forEach(c => addCard("todo", c));
-  clients.doing.forEach(c => addCard("doing", c));
-  clients.done.forEach(c => addCard("done", c));
-}
-
-function addCard(colKey, content) {
-  const container = document.querySelector(`#col-${colKey} .cards`);
-  const div = document.createElement("div");
-  div.className = "card";
-  div.draggable = true;
-  div.innerText = content;
-  div.ondragstart = ev => {
-    ev.dataTransfer.setData("card", content);
-    ev.dataTransfer.setData("from", colKey);
+// Créer carte client dans 1ere colonne
+document.getElementById("clientForm").onsubmit = ev => {
+  ev.preventDefault();
+  const fd = new FormData(document.getElementById("clientForm"));
+  const card = {
+    id: Date.now(),
+    title: `${last} ${first}`,
+    lastKey: `${columns[0].id || ''}`,
+    colIndex: `${columns.length}`
   };
-  container.appendChild(div);
-}
+};
 
-// Drag & Drop
-document.querySelectorAll(".column").forEach(column => {
-  const key = column.dataset.key;
-  const cardsContainer = column.querySelector(".cards");
-
-  cardsContainer.ondragover = ev => ev.preventDefault();
-
-  cardsContainer.ondrop = ev => {
-    const card = ev.dataTransfer.getData("card");
-    const from = ev.dataTransfer.getData("from");
-
-    if (key === "done") clients.done.push(card);
-    if (key === "doing") clients.doing.push(card);
-    if (key === "todo") clients.todo.push(card);
-
-    clients[from] = clients[from].filter(c => c !== card);
-    saveClients();
-    renderBoard();
-  };
-});
-
-// Export JSON
-function exportData() {
-  const blob = new Blob([JSON.stringify(clients, null, 2)], {type:"application/json"});
+async function exportJSON(){
+  ev.preventDefault();
+  const blob = new Blob([JSON.stringify(boardData, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "clients.json";
+  a.download = "board-data.json";
   a.click();
-}
+};
 
-// Déconnexion
-function logout() {
-  localStorage.removeItem("auth");
-  window.location.href = "index.html";
-}
+function logout(){
+  localStorage.clear();
+  sessionStorage.clear();
+  location.href='index.html';
+};
 
-// 1er rendu
-renderBoard();
 </script>
-
+<script src="app.js"></script>
 </body>
 </html>
