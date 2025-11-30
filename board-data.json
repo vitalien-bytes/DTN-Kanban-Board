@@ -1,0 +1,5 @@
+[
+  { "id": 1, "title": "Nouveaux clients", "cards": ["Exemple 1", "Exemple 2"] },
+  { "id": 2, "title": "Visites prévues", "cards": ["Exemple 3"] },
+  { "id": 3, "title": "Devis à faire", "cards": ["Exemple 4", "Exemple 5"] }
+]
