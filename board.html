@@ -17,6 +17,7 @@
 
   <div class="actions">
     <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
+    <button onclick="addColumn()" class="btn btn-accent">🆕 Nouvelle colonne</button>
     <button onclick="saveBoard()" class="btn btn-accent">💾 Sauvegarder</button>
   </div>
 </header>
@@ -28,7 +29,6 @@
   <div class="modal-card">
     <h3>Nouveau client</h3>
     <form onsubmit="createClient(event)">
-
       <input id="lastname" placeholder="Nom" required />
       <input id="firstname" placeholder="Prénom" required />
       <input id="tel" placeholder="Téléphone" />
@@ -49,7 +49,6 @@
         <button type="button" onclick="closeClientModal()" class="btn close-btn">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer</button>
       </div>
-
     </form>
   </div>
 </div>
@@ -61,7 +60,6 @@
 
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
-// Si rien enregistré → création des colonnes par défaut
 if (!boardData) {
   boardData = {
     columns: [
@@ -73,18 +71,14 @@ if (!boardData) {
   localStorage.setItem("boardData", JSON.stringify(boardData));
 }
 
-/* ============================
-   SAUVEGARDE BOARD
-============================== */
-
 function saveBoard() {
   localStorage.setItem("boardData", JSON.stringify(boardData));
   alert("Board sauvegardé ✔");
 }
 
-/* ============================
+/* ===============================
    MODALE (OUVRIR / FERMER)
-============================== */
+================================ */
 
 function openClientModal() {
   document.getElementById("clientModal").classList.add("open");
@@ -94,9 +88,9 @@ function closeClientModal() {
   document.getElementById("clientModal").classList.remove("open");
 }
 
-/* ============================
-   AJOUT CLIENT (MODAL)
-============================== */
+/* ===============================
+   AJOUT CLIENT (Modal)
+================================ */
 
 function createClient(e) {
   e.preventDefault();
@@ -112,7 +106,6 @@ function createClient(e) {
     comment: document.getElementById("comment").value.trim()
   };
 
-  // Ajoute toujours dans 1ère colonne "À faire"
   boardData.columns[0].cards.push(newClient);
 
   saveBoard();
@@ -121,9 +114,9 @@ function createClient(e) {
   e.target.reset();
 }
 
-/* ============================
-   AJOUT CLIENT RAPIDE (sans modal)
-============================== */
+/* ===============================
+   AJOUT RAPIDE CLIENT (sans modal)
+================================ */
 
 function addClientToColumn() {
   const col = boardData.columns[0];
@@ -144,12 +137,30 @@ function addClientToColumn() {
 
   saveBoard();
   renderBoard();
-  alert("Client ajouté dans la colonne À faire ✔");
 }
 
-/* ============================
-   DRAG & DROP (déplacer cartes)
-============================== */
+/* ===============================
+   AJOUT COLONNES
+================================ */
+
+function addColumn() {
+  const columnName = prompt("Nom de la nouvelle colonne ?");
+  if (!columnName) return;
+
+  const newColumn = {
+    id: "col-" + Date.now(),
+    name: columnName,
+    cards: []
+  };
+
+  boardData.columns.push(newColumn);
+  saveBoard();
+  renderBoard();
+}
+
+/* ===============================
+   DRAG & DROP → Déplacer cartes
+================================ */
 
 function moveClient(clientId, fromColIndex, toColId) {
   const fromCol = boardData.columns[fromColIndex];
@@ -161,18 +172,17 @@ function moveClient(clientId, fromColIndex, toColId) {
 
   fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
   toCol.cards.push(client);
-
   saveBoard();
   renderBoard();
 }
 
-/* ============================
-   AFFICHAGE KANBAN
-============================== */
+/* ===============================
+   AFFICHAGE DU BOARD
+================================ */
 
 function renderBoard() {
   const board = document.getElementById("kanban-board");
-  if (!board) return console.error("Board introuvable ❌");
+  if (!board) return console.error("Kanban introuvable ❌");
 
   board.innerHTML = "";
 
@@ -183,6 +193,11 @@ function renderBoard() {
     colDiv.innerHTML = `
       <div class="column-head">
         <h3>${col.name}</h3>
+        <button class="icon-btn column-menu-btn" onclick="toggleMenu('menu-${col.id}', event)">⋮</button>
+        <div class="menu-list" id="menu-${col.id}">
+          <button onclick="renameColumn('${col.id}')">Renommer colonne</button>
+          <button onclick="deleteColumn('${col.id}')">Supprimer colonne</button>
+        </div>
       </div>
       <div class="cards" id="cards-${col.id}"></div>
     `;
@@ -192,15 +207,13 @@ function renderBoard() {
     const cardsDiv = document.getElementById(`cards-${col.id}`);
     if (!cardsDiv) return;
 
-    // Drag & drop colonne
-    cardsDiv.ondragover = e => e.preventDefault();
-    cardsDiv.ondrop = e => {
-      const cardId = e.dataTransfer.getData("clientId");
-      const fromIndex = parseInt(e.dataTransfer.getData("fromCol"));
+    cardsDiv.ondragover = ev => ev.preventDefault();
+    cardsDiv.ondrop = ev => {
+      const cardId = ev.dataTransfer.getData("clientId");
+      const fromIndex = parseInt(ev.dataTransfer.getData("fromCol"));
       moveClient(cardId, fromIndex, col.id);
     };
 
-    // Ajout des cartes client dans la colonne
     col.cards.forEach(client => {
       const card = document.createElement("div");
       card.className = "card";
@@ -214,9 +227,13 @@ function renderBoard() {
           <span class="chip">🛠 ${client.work}</span>
         </div>
         ${client.comment ? `<p class="card-comment">${client.comment}</p>` : ""}
+        <button class="icon-btn" onclick="toggleMenu('menu-card-${client.id}', event)">⋮</button>
+        <div class="menu-list" id="menu-card-${client.id}">
+          <button onclick="editCard('${col.id}','${client.id}')">Modifier commentaire</button>
+          <button onclick="deleteClient('${col.id}','${client.id}')">Supprimer client</button>
+        </div>
       `;
 
-      // On stocke l’index de la colonne d’origine
       card.ondragstart = e => {
         e.dataTransfer.setData("clientId", client.id);
         e.dataTransfer.setData("fromCol", colIndex);
@@ -227,12 +244,48 @@ function renderBoard() {
   });
 }
 
-// Ferme tous les menus ouverts si clic hors élément (sécurité UI)
+/* ===============================
+   FONCTIONS COLONNES
+================================ */
+
+function renameColumn(colId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  const newName = prompt("Nouveau nom :", col.name);
+  if (!newName) return;
+  col.name = newName;
+  saveBoard();
+  renderBoard();
+}
+
+function deleteColumn(colId) {
+  if (!confirm("Supprimer cette colonne ?")) return;
+  boardData.columns = boardData.columns.filter(c => c.id !== colId);
+  saveBoard();
+  renderBoard();
+}
+
+function editCard(colId, clientId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  const client = col.cards.find(c => c.id == clientId);
+  const newComment = prompt("Nouveau commentaire :", client.comment || "");
+  if (newComment === null) return;
+  client.comment = newComment;
+  saveBoard();
+  renderBoard();
+}
+
+/* ---------- Menus UI ---------- */
+function toggleMenu(id, event) {
+  event.stopPropagation();
+  document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
+  document.getElementById(id)?.classList.toggle("open");
+}
+
 document.body.addEventListener("click", () => {
   document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
 });
 
-// Initialisation du board
+// Initialisation
 renderBoard();
 </script>
 
