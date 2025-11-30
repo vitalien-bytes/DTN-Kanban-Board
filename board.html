@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <title>DTN SmartOps Board</title>
+</head>
+<body>
+
+<header>
+  <h1>DTN SmartOps Board</h1>
+  <button onclick="logout()">Déconnexion</button>
+</header>
+
+<div id="board">
+
+  <!-- COLONNE 1 -->
+  <div class="column" data-col="todo">
+    <h2>À faire</h2>
+    <button onclick="addCard('todo')">+ Nouveau Client</button>
+    <div class="cards"></div>
+  </div>
+
+  <!-- COLONNE 2 -->
+  <div class="column" data-col="doing">
+    <h2>En cours</h2>
+    <div class="cards"></div>
+  </div>
+
+  <!-- COLONNE 3 -->
+  <div class="column" data-col="done">
+    <h2>Terminé</h2>
+    <div class="cards"></div>
+  </div>
+
+</div>
+
+</div>
+
+<!-- BOUTON EXPORT JSON LOCAL -->
+<div class="export-container">
+  <button onclick="exportJSON()">💾 Télécharger sauvegarde (JSON)</button>
+</div>
+
+<script>
+// protection accès
+if (localStorage.getItem("auth") !== "true") {
+  document.body.innerHTML = "<h2>Accès refusé 🔐</h2>";
+}
+
+// charger board existant si déjà cartes créées
+const data = JSON.parse(localStorage.getItem("board-data") || '{"todo":[],"doing":[],"done":[]}');
+
+function save() {
+  localStorage.setItem("board-data", JSON.stringify(data));
+  localStorage.setItem("board-data", JSON.stringify(data));
+  localStorage.setItem("board-data", JSON.stringify(data));
+  localStorage.setItem("board-data", JSON.stringify(data));
+  localStorage.setItem("board-data", JSON.stringify(data));
+}
+
+function render() {
+  document.querySelectorAll(".column").forEach(col => {
+    const key = col.dataset.col;
+    const container = col.querySelector(".cards");
+    container.innerHTML = "";
+    data[key].forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.draggable = true;
+      div.innerText = card;
+      div.ondragstart = ev => {
+        ev.dataTransfer.setData("card", card);
+      };
+      container.appendChild(div);
+    });
+  });
+}
+
+function addCard(column) {
+  const name = prompt("Nom du client :");
+  if (name) {
+    data[column].push(name);
+    save();
+    render();
+  }
+}
+
+function logout() {
+  localStorage.removeItem("auth");
+  window.location.href = "index.html";
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "board-data.json";
+  a.click();
+}
+
+function logout() {
+  localStorage.removeItem("auth");
+  window.location.href = "index.html";
+}
+
+render();
+</script>
+
+</body>
+</html>
