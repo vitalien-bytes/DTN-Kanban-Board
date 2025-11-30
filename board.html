@@ -1,59 +1,44 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DTN SmartOps</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartOps Board</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
+
 <header class="topbar">
   <div class="brand">
-    <img src="logo.png" alt="Logo DTN" class="logo"/>
-    <div class="brand-title">DTN <span class="accent">SmartOps</span></div>
+    <img src="logo.png" alt="logo" class="logo"/>
+    <h1 class="brand-title">DTN <span class="accent">SmartOps</span></h1>
   </div>
 </header>
 
-<div class="export-bar">
-  <button onclick="addColumn()" class="btn btn-primary">+ Ajouter une colonne</button>
-  <button onclick="openClientModal()" class="btn btn-accent">+ Nouveau client</button>
-  <button onclick="exportJSON()" class="btn">💾 Télécharger board.json</button>
-  <button onclick="logout()" class="btn btn-danger">Déconnexion</button>
+<div class="controls">
+  <button class="btn" id="btnAddColumn">＋ Colonne</button>
+  <button class="btn" id="btnAddClient">＋ Client</button>
+  <button class="btn btn-danger" id="btnLogout">Déconnexion</button>
 </div>
 
 <main id="board" class="board-container"></main>
 
-<!-- Modal création client -->
-<div id="client-modal" class="modal">
-  <div class="modal-card">
-    <h3>Créer un client</h3>
-    <form id="client-form">
-      <input name="lastname" placeholder="Nom" required />
-      <input name="firstname" placeholder="Prénom" required />
-      <input name="tel" placeholder="Téléphone" />
-      <input name="address" placeholder="Adresse postale" />
-      <input name="email" type="email" placeholder="Adresse mail" />
-      <textarea name="comment" placeholder="Commentaire…" rows="3"></textarea>
-
-      <select name="work">
-        <option>Fibre optique / Télécom</option>
-        <option>Électricité générale</option>
-        <option>IRVE / Borne de recharge</option>
-        <option>Photovoltaïque</option>
-        <option>Terrassement / Génie civil</option>
-        <option>Détection réseaux / regard</option>
-        <option>Autres</option>
-      </select>
-
-      <div class="modal-actions">
-        <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
-        <button type="submit" class="btn btn-primary">Créer</button>
-      </div>
-    </form>
+<!-- MODAL NOUVEAU CLIENT -->
+<div id="clientModal" class="modal">
+  <div class="modal-content">
+    <h3>Nouvelle fiche client</h3>
+    <input id="lastname" placeholder="Nom" required/>
+    <input id="firstname" placeholder="Prénom" required/>
+    <input id="tel" placeholder="Téléphone" required/>
+    <input id="address" placeholder="Adresse"/>
+    <input id="email" type="email" placeholder="Email"/>
+    <textarea id="comment" placeholder="Commentaire"></textarea>
+    <div class="modal-actions">
+      <button class="btn" id="btnModalCancel">Annuler</button>
+      <button class="btn btn-primary" id="btnModalCreate">Créer</button>
+    </div>
   </div>
 </div>
-<div id="modalBackdrop" class="backdrop" onclick="closeClientModal()"></div>
 
 <script src="app.js"></script>
 </body>
