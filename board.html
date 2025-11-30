@@ -1,45 +1,294 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartOps Board</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DTN SmartOps</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <img src="logo.png" alt="logo" class="logo"/>
-    <h1 class="brand-title">DTN <span class="accent">SmartOps</span></h1>
+    <img src="logo.png" alt="Logo DTN" class="logo" />
+    <span class="brand-text"><b>DTN</b><span class="accent"> SmartOps</span></span>
+  </div>
+  <div class="actions">
+    <button class="btn btn-primary" onclick="openClientModal()">+ Nouveau client</button>
+    <button class="btn btn-accent" onclick="addColumn()">+ Ajouter une colonne</button>
   </div>
 </header>
 
-<div class="controls">
-  <button class="btn" id="btnAddColumn">＋ Colonne</button>
-  <button class="btn" id="btnAddClient">＋ Client</button>
-  <button class="btn btn-danger" id="btnLogout">Déconnexion</button>
-</div>
-
 <main id="board" class="board-container"></main>
 
-<!-- MODAL NOUVEAU CLIENT -->
+<!-- MODALE NOUVEAU CLIENT -->
 <div id="clientModal" class="modal">
-  <div class="modal-content">
-    <h3>Nouvelle fiche client</h3>
-    <input id="lastname" placeholder="Nom" required/>
-    <input id="firstname" placeholder="Prénom" required/>
-    <input id="tel" placeholder="Téléphone" required/>
-    <input id="address" placeholder="Adresse"/>
-    <input id="email" type="email" placeholder="Email"/>
-    <textarea id="comment" placeholder="Commentaire"></textarea>
-    <div class="modal-actions">
-      <button class="btn" id="btnModalCancel">Annuler</button>
-      <button class="btn btn-primary" id="btnModalCreate">Créer</button>
-    </div>
+  <div class="modal-card">
+    <h3>Nouveau client</h3>
+    <form id="clientForm">
+      <input id="lastname" placeholder="Nom" required />
+      <input id="firstname" placeholder="Prénom" required />
+      <input id="tel" placeholder="Téléphone" />
+      <input id="address" placeholder="Adresse postale" />
+      <input id="email" type="email" placeholder="Email" />
+      <textarea id="comment" placeholder="Commentaire…" rows="3"></textarea>
+
+      <select id="work">
+        <option>Fibre optique / Télécom</option>
+        <option>Électricité générale</option>
+        <option>IRVE / Borne de recharge</option>
+        <option>Photovoltaïque</option>
+        <option>Terrassement / Génie civil</option>
+        <option>Détection réseaux / regard</option>
+        <option>Autres</option>
+      </select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn close-btn" onclick="closeClientModal()">Annuler</button>
+        <button type="submit" class="btn btn-primary">Créer</button>
+      </div>
+    </form>
   </div>
 </div>
 
-<script src="app.js"></script>
+<script>
+/* ============================
+   DTN SMARTOPS – LOGIQUE KANBAN
+============================== */
+
+// Données du board
+let board = JSON.parse(localStorage.getItem("boardData") || "null");
+
+if (!board) {
+  board = {
+    columns: [
+      { id: "col-1", name: "À faire", cards: [] },
+      { id: "col-2", name: "En cours", cards: [] },
+      { id: "col-3", name: "Terminé", cards: [] }
+    ]
+  };
+  saveBoard();
+}
+
+function saveBoard() {
+  localStorage.setItem("boardData", JSON.stringify(board));
+}
+
+/* ---------- Rendu du tableau ---------- */
+function renderBoard() {
+  const container = document.getElementById("board");
+  container.innerHTML = "";
+
+  board.columns.forEach((col) => {
+    const colEl = document.createElement("div");
+    colEl.className = "column";
+    colEl.dataset.colId = col.id;
+
+    colEl.innerHTML = `
+      <div class="column-head">
+        <h3 class="column-title">${col.name}</h3>
+        <div class="menu">
+          <button class="icon-btn" onclick="toggleMenu('menu-col-${col.id}', event)">⋮</button>
+          <div class="menu-list" id="menu-col-${col.id}">
+            <button onclick="renameColumn('${col.id}')">Renommer</button>
+            <button onclick="deleteColumn('${col.id}')">Supprimer</button>
+          </div>
+        </div>
+      </div>
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+
+    container.appendChild(colEl);
+
+    const cardsEl = colEl.querySelector(".cards");
+
+    // Zone de drop pour les cartes
+    cardsEl.addEventListener("dragover", (e) => e.preventDefault());
+    cardsEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const cardId = e.dataTransfer.getData("cardId");
+      const fromColId = e.dataTransfer.getData("fromColId");
+      moveCard(cardId, fromColId, col.id);
+    });
+
+    // Cartes
+    col.cards.forEach((card) => {
+      const cardEl = document.createElement("div");
+      cardEl.className = "card";
+      cardEl.draggable = true;
+
+      cardEl.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("cardId", card.id);
+        e.dataTransfer.setData("fromColId", col.id);
+      });
+
+      cardEl.innerHTML = `
+        <div class="card-name">${card.lastname} ${card.firstname}</div>
+        <div class="card-meta">
+          ${card.tel ? `<span class="chip">📞 ${card.tel}</span>` : ""}
+          ${card.email ? `<span class="chip">📧 ${card.email}</span>` : ""}
+          <span class="chip">🛠 ${card.work}</span>
+        </div>
+        ${card.comment ? `<p class="card-comment">${card.comment}</p>` : ""}
+        <div class="menu card-menu">
+          <button class="icon-btn" onclick="toggleMenu('menu-card-${card.id}', event)">⋮</button>
+          <div class="menu-list" id="menu-card-${card.id}">
+            <button onclick="editCard('${col.id}','${card.id}')">Modifier le commentaire</button>
+            <button onclick="deleteCard('${col.id}','${card.id}')">Supprimer</button>
+          </div>
+        </div>
+      `;
+
+      cardsEl.appendChild(cardEl);
+    });
+  });
+}
+
+/* ---------- Menus ⋮ ---------- */
+
+function toggleMenu(id, event) {
+  event.stopPropagation();
+  // Fermer tous les autres
+  document.querySelectorAll(".menu-list.open").forEach((m) => {
+    if (m.id !== id) m.classList.remove("open");
+  });
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle("open");
+}
+
+// Fermer les menus si on clique ailleurs
+document.addEventListener("click", () => {
+  document.querySelectorAll(".menu-list.open").forEach((m) => m.classList.remove("open"));
+});
+
+/* ---------- Colonnes ---------- */
+
+function addColumn() {
+  const name = prompt("Nom de la nouvelle colonne :");
+  if (!name) return;
+  const id = "col-" + Date.now();
+  board.columns.push({ id, name, cards: [] });
+  saveBoard();
+  renderBoard();
+}
+
+function renameColumn(id) {
+  const col = board.columns.find((c) => c.id === id);
+  if (!col) return;
+  const name = prompt("Nouveau nom de la colonne :", col.name);
+  if (!name) return;
+  col.name = name;
+  saveBoard();
+  renderBoard();
+}
+
+function deleteColumn(id) {
+  if (!confirm("Supprimer cette colonne et toutes ses cartes ?")) return;
+  board.columns = board.columns.filter((c) => c.id !== id);
+  saveBoard();
+  renderBoard();
+}
+
+/* ---------- Modal client ---------- */
+
+function openClientModal() {
+  document.getElementById("clientModal").style.display = "flex";
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").style.display = "none";
+  document.getElementById("clientForm").reset();
+}
+
+document.getElementById("clientForm").addEventListener("submit", createClient);
+
+function createClient(e) {
+  e.preventDefault();
+  const last = document.getElementById("lastname").value.trim();
+  const first = document.getElementById("firstname").value.trim();
+  const tel = document.getElementById("tel").value.trim();
+  const address = document.getElementById("address").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const comment = document.getElementById("comment").value.trim();
+  const work = document.getElementById("work").value;
+
+  if (!last || !first) {
+    alert("Nom et prénom obligatoires");
+    return;
+  }
+
+  if (board.columns.length === 0) {
+    board.columns.push({ id: "col-1", name: "À faire", cards: [] });
+  }
+
+  const newCard = {
+    id: "card-" + Date.now(),
+    lastname: last,
+    firstname: first,
+    tel,
+    address,
+    email,
+    work,
+    comment
+  };
+
+  // Ajout dans la première colonne (À faire)
+  board.columns[0].cards.push(newCard);
+  saveBoard();
+  closeClientModal();
+  renderBoard();
+}
+
+/* ---------- Cartes (clients) ---------- */
+
+function deleteCard(colId, cardId) {
+  const col = board.columns.find((c) => c.id === colId);
+  if (!col) return;
+  col.cards = col.cards.filter((card) => card.id !== cardId);
+  saveBoard();
+  renderBoard();
+}
+
+function editCard(colId, cardId) {
+  const col = board.columns.find((c) => c.id === colId);
+  if (!col) return;
+  const card = col.cards.find((card) => card.id === cardId);
+  if (!card) return;
+  const newComment = prompt("Modifier le commentaire :", card.comment || "");
+  if (newComment === null) return;
+  card.comment = newComment;
+  saveBoard();
+  renderBoard();
+}
+
+/* ---------- Déplacement (drag & drop) ---------- */
+
+function moveCard(cardId, fromColId, toColId) {
+  if (fromColId === toColId) return;
+  const fromCol = board.columns.find((c) => c.id === fromColId);
+  const toCol = board.columns.find((c) => c.id === toColId);
+  if (!fromCol || !toCol) return;
+  const idx = fromCol.cards.findIndex((card) => card.id === cardId);
+  if (idx === -1) return;
+  const [card] = fromCol.cards.splice(idx, 1);
+  toCol.cards.push(card);
+  saveBoard();
+  renderBoard();
+}
+
+/* ---------- Export JSON (si tu veux) ---------- */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(board, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "board-data.json";
+  a.click();
+}
+
+/* ---------- Init ---------- */
+
+document.addEventListener("DOMContentLoaded", renderBoard);
+</script>
+
 </body>
 </html>
