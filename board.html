@@ -1,3 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DTN SmartOps</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" alt="Logo DTN" class="logo" />
+    <span class="brand-text"><b>DTN</b><span class="accent"> SmartOps</span></span>
+  </div>
+  <div class="actions">
+    <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
+  </div>
+</header>
+
+<main id="kanban-board" class="board-container"></main>
+
+<!-- MODALE NOUVEAU CLIENT -->
+<div id="clientModal" class="modal">
+  <div class="modal-card">
+    <h3>Nouveau client</h3>
+    <form onsubmit="createClient(event)">
+      <input id="lastname" placeholder="Nom" required />
+      <input id="firstname" placeholder="Prénom" required />
+      <input id="tel" placeholder="Téléphone" />
+      <input id="address" placeholder="Adresse postale" />
+      <input id="email" type="email" placeholder="Adresse mail" />
+      <textarea id="comment" placeholder="Commentaire…" rows="3"></textarea>
+      <select id="work">
+        <option>Fibre optique / Télécom</option>
+        <option>Électricité générale</option>
+        <option>IRVE / Borne de recharge</option>
+        <option>Photovoltaïque</option>
+        <option>Terrassement / Génie civil</option>
+        <option>Détection réseaux / regard</option>
+        <option>Autres</option>
+      </select>
+
+      <div class="modal-actions">
+        <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
+        <button type="submit" class="btn btn-primary">Créer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
@@ -17,7 +69,7 @@ function saveBoard() {
 }
 
 function renderBoard() {
-  const board = document.getElementById("board");
+  const board = document.getElementById("kanban-board");
   board.innerHTML = "";
 
   boardData.columns.forEach((col, colIndex) => {
@@ -32,13 +84,16 @@ function renderBoard() {
       <div class="cards" id="cards-${col.id}"></div>
       <div class="menu-list" id="menu-column-${col.id}">
         <button onclick="renameColumn('${col.id}')">Renommer colonne</button>
-        <button onclick="deleteColumn('${col.id}')">Supprimer colonne</button>
+        <button onclick="removeColumn('${col.id}')">Supprimer colonne</button>
+        <button onclick="addClientPrompt(${colIndex})">+ Ajouter un client</button>
       </div>
     `;
 
     board.appendChild(colDiv);
 
     const cardsDiv = document.getElementById(`cards-${col.id}`);
+
+    // drag & drop support colonne
     cardsDiv.ondragover = ev => ev.preventDefault();
     cardsDiv.ondrop = ev => {
       const cardId = ev.dataTransfer.getData("clientId");
@@ -72,7 +127,6 @@ function renderBoard() {
       };
 
       cardsDiv.appendChild(card);
-      hideMenuOnBoardClick();
     });
   });
 }
@@ -80,7 +134,6 @@ function renderBoard() {
 function moveClient(clientId, fromColIndex, toColId) {
   const fromCol = boardData.columns[fromColIndex];
   const toCol = boardData.columns.find(c => c.id === toColId);
-
   if (!fromCol || !toCol) return;
 
   const client = fromCol.cards.find(c => c.id == clientId);
@@ -93,16 +146,38 @@ function moveClient(clientId, fromColIndex, toColId) {
   renderBoard();
 }
 
+function addClientPrompt(colIndex) {
+  const col = boardData.columns[colIndex];
+  const lastname = prompt("Nom du client ?");
+  const firstname = prompt("Prénom ?");
+  if (!lastname || !firstname) return;
+
+  const newClient = {
+    id: Date.now().toString(),
+    lastname,
+    firstname,
+    tel: "",
+    address: "",
+    email: "",
+    work: "Autres",
+    comment: ""
+  };
+
+  col.cards.push(newClient);
+  saveBoard();
+  renderBoard();
+}
+
 function renameColumn(colId) {
   const col = boardData.columns.find(c => c.id === colId);
-  const newName = prompt("Nouveau nom :", col.name);
+  const newName = prompt("Renommer colonne :", col.name);
   if (!newName) return;
   col.name = newName;
   saveBoard();
   renderBoard();
 }
 
-function deleteColumn(colId) {
+function removeColumn(colId) {
   if (!confirm("Supprimer cette colonne ?")) return;
   boardData.columns = boardData.columns.filter(c => c.id !== colId);
   saveBoard();
@@ -127,62 +202,10 @@ function deleteCard(colId, clientId) {
   alert("Client supprimé ✔️");
 }
 
-function hideMenuOnBoardClick() {
-  document.addEventListener("click", event => {
-    if (!event.target.closest(".menu-list")) {
-      document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-    }
-  });
-}
-
 function toggleMenu(id, event) {
   event.stopPropagation();
-  const menu = document.getElementById(id);
-  menu?.classList.toggle("open");
-  if (menu?.classList.contains("open")) {
-    menu.classList.add("open");
-  }
+  document.getElementById(id)?.classList.toggle("open");
 }
-
-function hideMenuOnBoardClick() {
-  document.addEventListener("click", () => {
-    document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-  });
-}
-
-function hideMenuOnBoardClick() {
-  document.querySelector(".board-container")?.addEventListener("click", () => {
-    document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-  });
-}
-
-function addClientToColumn() {
-  const firstColumn = boardData.columns[0];
-  if (!firstColumn) return alert("Aucune colonne pour ajouter un client");
-  const lastname = prompt("Nom du client ?");
-  const firstname = prompt("Prénom ?");
-  if (!lastname || !firstname) return;
-
-  const newClient = {
-    id: Date.now().toString(),
-    lastname,
-    firstname,
-    tel: "",
-    address: "",
-    email: "",
-    work: "Autres",
-    comment: ""
-  };
-
-  firstColumn.cards.push(newClient);
-  saveBoard();
-  renderBoard();
-  alert("Client ajouté ✔️");
-}
-
-document.addEventListener("click", () => {
-  document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-});
 
 document.body.addEventListener("click", () => {
   document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
@@ -190,3 +213,6 @@ document.body.addEventListener("click", () => {
 
 renderBoard();
 </script>
+
+</body>
+</html>
