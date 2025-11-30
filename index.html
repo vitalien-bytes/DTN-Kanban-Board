@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="style.css"/>
-  <title>Connexion DTN SmartOps</title>
+  <title>Connexion Board DTN</title>
 </head>
 <body class="login-body">
-
   <div class="login-container">
-    <h2>Accès Board DTN</h2>
-    <input type="password" id="passwordInput" placeholder="Entrez le mot de passe"/>
+    <h2>Accès Board :contentReference[oaicite:0]{index=0}</h2>
+    <input type="password" id="passwordInput" placeholder="Mot de passe"/>
     <button onclick="checkPassword()">Se connecter</button>
     <p id="error-message"></p>
   </div>
 
 <script>
-const PWD = "DTN-2025-secure-base";  // mot de passe déjà fonctionnel
+const PWD = "DTN-2025-secure-base";  // 😊 ton mot de passe actuel
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
   if (input === PWD) {
@@ -26,8 +25,7 @@ function checkPassword() {
     document.getElementById("error-message").innerText = "Mot de passe incorrect ❌";
   }
 }
-
-// empêcher accès direct page board
+// empêcher accès direct au board sans login
 if (localStorage.getItem("auth") === "true") {
   window.location.href = "board.html";
 }
