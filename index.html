@@ -4,31 +4,29 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="style.css"/>
-  <title>DTN Board - Connexion</title>
+  <title>DTN SmartOps - Connexion</title>
 </head>
 <body class="login-body">
   <div class="login-container">
-    <h2>Accès Board :contentReference[oaicite:0]{index=0}</h2>
+    <h2>Accès sécurisé - DTN SmartOps</h2>
     <input type="password" id="passwordInput" placeholder="Mot de passe"/>
-    <button onclick="checkPassword()">Se connecter</button>
+    <button onclick="checkPassword()" class="btn btn-primary">Se connecter</button>
     <p id="error-message"></p>
   </div>
-
 <script>
-const PWD = "DTN-2025-secure-base"; 
+const PWD = "DTN-2025-secure-base";
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
   if (input === PWD) {
-    localStorage.setItem("auth", "true");
-    window.location.href = "board.html";
+    localStorage.setItem("auth","true");
+    window.location.href="board.html";
   } else {
-    document.getElementById("error-message").innerText = "Mot de passe incorrect ❌";
+    document.getElementById("error-message").innerText="Mot de passe incorrect ❌";
   }
 }
-if (localStorage.getItem("auth") === "true") {
-  window.location.href = "board.html";
+if (localStorage.getItem("auth")==="true") {
+  window.location.href="board.html";
 }
 </script>
-
 </body>
 </html>
