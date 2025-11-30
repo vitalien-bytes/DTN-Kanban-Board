@@ -1,220 +1,202 @@
-/* ===============================
-   Kanban frontend - Colonnes + clients
-   =============================== */
+/* ============================
+   DTN SMARTOPS – LOGIQUE KANBAN
+============================== */
 
-// Colonnes par défaut si vide
-const defaultData = [
-  { id: "col-1", name: "À faire", cards: [] },
-  { id: "col-2", name: "En cours", cards: [] },
-  { id: "col-3", name: "Terminé", cards: [] }
-];
+let board = JSON.parse(localStorage.getItem("board")) || {
+  columns: [
+    { id: "col1", name: "À faire", cards: [] },
+    { id: "col2", name: "En cours", cards: [] },
+    { id: "col3", name: "Terminé", cards: [] }
+  ]
+};
 
-let columns = JSON.parse(localStorage.getItem("boardData")) || defaultData;
-if (columns.length === 0) columns = defaultData;
-save();
-
-// Sauvegarde locale
-function save() {
-  localStorage.setItem("boardData", JSON.stringify(columns));
+function saveBoard() {
+  localStorage.setItem("board", JSON.stringify(board));
 }
 
-function render() {
-  const board = document.getElementById("board");
-  board.innerHTML = "";
+/* ------- RENDU DU TABLEAU ------- */
+function renderBoard() {
+  const container = document.getElementById("board");
+  container.innerHTML = "";
 
-  columns.forEach((col, colIndex) => {
-    const div = document.createElement("div");
-    div.className = "column";
-    div.dataset.key = colIndex;
-    div.innerHTML = `
-      <div class="column-head flex justify-between">
-        <h3 class="column-title">${col.name}</h3>
-        <div class="menu">
-          <button class="icon-btn" onclick="toggleMenu('menu-${colIndex}')">⋮</button>
-          <div class="menu-list" id="menu-${colIndex}">
-            <button onclick="renameColumn(${colIndex})">Renommer</button>
-            <button onclick="removeColumn(${colIndex})">Supprimer</button>
-          </div>
+  board.columns.forEach((col, colIndex) => {
+    const column = document.createElement("div");
+    column.className = "column";
+
+    column.innerHTML = `
+      <div class="column-head">
+        <h3>${col.name}</h3>
+        <button class="icon-btn" onclick="toggleMenu('menu-col-${col.id}')">⋮</button>
+
+        <div class="menu-list" id="menu-col-${col.id}">
+          <button onclick="renameColumn('${col.id}')">Renommer</button>
+          <button onclick="deleteColumn('${col.id}')">Supprimer</button>
         </div>
       </div>
-      <div class="cards" id="cards-${colIndex}"></div>
+      <div class="cards" id="cards-${col.id}"></div>
     `;
-    board.appendChild(div);
 
-    const cardsContainer = document.getElementById(`cards-${colIndex}`);
+    container.appendChild(column);
 
-    col.cards.forEach(client => {
-      const c = document.createElement("div");
-      c.className = "card";
-      c.draggable = true;
-      c.innerHTML = `
-        <div class="client-card-inner">
-          ${client.content}
-          <div class="menu" style="float:right">
-            <button class="icon-btn" onclick="toggleMenu('client-menu-${client.id}')">⋮</button>
-            <div class="menu-list" id="client-menu-${client.id}">
-              <button onclick="editClient(${colIndex}, '${client.id}')">Modifier</button>
-              <button onclick="removeClient(${colIndex}, '${client.id}')">Supprimer</button>
-            </div>
-          </div>
+    const cardContainer = document.getElementById(`cards-${col.id}`);
+
+    /* ----- Cartes client ----- */
+    col.cards.forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.draggable = true;
+
+      div.innerHTML = `
+        ${card.content}
+        <button class="icon-btn card-menu" onclick="toggleMenu('menu-card-${card.id}')">⋮</button>
+        <div class="menu-list" id="menu-card-${card.id}">
+          <button onclick="editClient('${col.id}', '${card.id}')">Modifier</button>
+          <button onclick="deleteClient('${col.id}', '${card.id}')">Supprimer</button>
         </div>
       `;
 
-      c.ondragstart = ev => {
-        ev.dataTransfer.setData("client-id", client.id);
-        ev.dataTransfer.setData("from-column", colIndex);
+      /* --- drag --- */
+      div.ondragstart = ev => {
+        ev.dataTransfer.setData("clientId", card.id);
+        ev.dataTransfer.setData("fromColumn", colIndex);
       };
 
-      cardsContainer.appendChild(c);
+      cardContainer.ondragover = ev => ev.preventDefault();
+
+      cardContainer.ondrop = ev => {
+        const clientId = ev.dataTransfer.getData("clientId");
+        const fromColumn = ev.dataTransfer.getData("fromColumn");
+        moveClient(fromColumn, colIndex, clientId);
+      };
+
+      cardContainer.appendChild(div);
     });
-
-    // Drop zone
-    cardsContainer.ondragover = ev => ev.preventDefault();
-
-    cardsContainer.ondrop = ev => {
-      ev.preventDefault();
-      const clientId = ev.dataTransfer.getData("client-id");
-      const fromColumn = ev.dataTransfer.getData("from-column");
-
-      // Trouver client
-      let client;
-      columns.forEach(col => {
-        const found = col.cards.find(c => c.id == clientId);
-        if (found) client = found;
-      });
-      if (!client) return;
-
-      // Retire de l’ancienne colonne
-      columns[fromColumn].cards = columns[fromColumn].cards.filter(c => c.id != clientId);
-
-      // Ajoute dans la nouvelle
-      columns[colIndex].cards.push(client);
-
-      save();
-      render();
-    };
   });
 }
 
-// Gestion colonnes
-window.toggleMenu = function(id) {
-  document.getElementById(id)?.classList.toggle("open");
-};
-
-window.renameColumn = function(index) {
-  const newName = prompt("📝 Nouveau nom de colonne :");
-  if (newName) {
-    columns[index].name = newName;
-    save();
-    render();
-  }
-};
-
-window.removeColumn = function(index) {
-  if (confirm("❗ Supprimer cette colonne ?")) {
-    columns.splice(index, 1);
-    save();
-    render();
-  }
-};
-
-// Gestion clients
-window.createClient = function(ev) {
-  ev.preventDefault();
-  const form = document.getElementById("client-form");
-  const fd = new FormData(form);
-
-  const fromColKey = ev.dataTransfer.getData("from-col");
-  columns[0].cards.push({ "last-name":col.newName.trim()||"" });
-  if(colIDB==fromColKey) return loginPage();
-
-  // Storage durable
-  function safeMigrationIndex("ensurepip");
-  ev.dataTransfer.remove("from-colKey");
-  columns.find(ev.dataTransfer.goTo);
-  if(!from.backup.id) return alert("Echec sauvegarde drive.json") 
-
-  column.cards.push({id: Date.now(), title: `:contentReference[oaicite:0]{index=0}`, comment:""})
-  save();
+/* ------- MENU (3 points) ------- */
+function toggleMenu(id) {
+  document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open"));
+  document.getElementById(id).classList.toggle("open");
 }
 
-function createCard(keyIDBCol,iCarte) {
-  const last = document.getElementById("m-lastname").value.trim();
-  const first = document.getElementById("m-firstname").value.trim();
-  const tel = document.getElementById("m-tel").value.trim();
-  const addr = document.getElementById("m-address").value.trim();
-  const mail = document.getElementById("m-email").value.trim();
-  const work = document.getElementById("m-work").value;
-  const comment = document.getElementById("m-comment").value.trim();
+/* ------- COLONNES ------- */
+function addColumn() {
+  const name = prompt("Nom de la colonne :");
+  if (!name) return;
 
-  const content = `👤 ${last} ${first}
+  board.columns.push({
+    id: "col" + Date.now(),
+    name,
+    cards: []
+  });
+
+  saveBoard();
+  renderBoard();
+}
+
+function renameColumn(id) {
+  const newName = prompt("Nouveau nom :");
+  if (!newName) return;
+
+  const col = board.columns.find(c => c.id === id);
+  col.name = newName;
+
+  saveBoard();
+  renderBoard();
+}
+
+function deleteColumn(id) {
+  if (!confirm("Supprimer cette colonne ?")) return;
+  board.columns = board.columns.filter(c => c.id !== id);
+  saveBoard();
+  renderBoard();
+}
+
+/* ------- CLIENTS ------- */
+function openClientModal() {
+  document.getElementById("clientModal").style.display = "flex";
+}
+function closeClientModal() {
+  document.getElementById("clientModal").style.display = "none";
+}
+
+function createClient(e) {
+  e.preventDefault();
+
+  const last = document.getElementById("lastname").value;
+  const first = document.getElementById("firstname").value;
+  const tel = document.getElementById("tel").value;
+  const address = document.getElementById("address").value;
+  const email = document.getElementById("email").value;
+  const comment = document.getElementById("comment").value;
+  const work = document.getElementById("work").value;
+
+  const content = `
+👤 ${last} ${first}
 📞 ${tel}
-🏠 ${addr}
-📧 ${mail}
+🏠 ${address}
+📧 ${email}
 🛠 ${work}
-💬 ${comment}`;
+💬 ${comment}
+  `;
 
-  columns[keyIDBCol].cards.push({ id:Date.now().toString(), content });
-  save();
-  render_to_user();
-  alert("✅ Client ajouté");
-};
+  board.columns[0].cards.push({
+    id: "card" + Date.now(),
+    content
+  });
 
-function removeRow(ev,columnID,clientID) {
-  ev.preventDefault();
-  if(!from.notset ? null:col.notif) {
-    location.href="board.html">;
-  }
+  saveBoard();
+  closeClientModal();
+  renderBoard();
 }
-window.renameColumnTwo = function(colTwoID) {
-  const b = document.getElementINNERtext();
-======= Aurais-tu la possibilité de me créer un projet encore plus simple ?
 
-Oui, tout à fait ! Et tu as raison, si tu veux :
-          ${c.content}
-        <div class="column-head">supprimer_client ${clientID}</div>
+/* ------- Modifier / supprimer carte ------- */
+function deleteClient(colId, cardId) {
+  const col = board.columns.find(c => c.id === colId);
+  col.cards = col.cards.filter(c => c.id !== cardId);
+  saveBoard();
+  renderBoard();
+}
 
-        <button class="icon-btn" onclick="checkPassword()">...</button>
-        <div class="menu-list" id="menu-${_id}">
-          <button.onclick="renameColumn(${index})">renommer</button>
-          <button.onclick="removeColumn(${_id})">supprimer</button>
-        </div>
+function editClient(colId, cardId) {
+  const col = board.columns.find(c => c.id === colId);
+  const card = col.cards.find(c => c.id === cardId);
 
-      <div class='card-meta'>
-        <span class='chip'>📞 ${client.tel || ""}</span>
-      </div>    c.ondragstart=function(e){e.dataTransfer.setData("id",client.id);e.dataTransfer.setData("from",colIndex);}
-    c.ondragstart=function(e){e.dataTransfer.setData("id",client.id);e.dataTransfer.setData("from",colIndex);}
-      cardsWrap.appendChild(c);
-    });
-  render();
+  const newText = prompt("Modifier la fiche client :", card.content);
+  if (!newText) return;
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(columns, null, 2)], { type: "application/json" });
+  card.content = newText;
+
+  saveBoard();
+  renderBoard();
+}
+
+/* ------- Déplacement clients ------- */
+function moveClient(fromCol, toCol, cardId) {
+  const client = board.columns[fromCol].cards.find(c => c.id == cardId);
+
+  board.columns[fromCol].cards = board.columns[fromCol].cards.filter(c => c.id != cardId);
+  board.columns[toCol].cards.push(client);
+
+  saveBoard();
+  renderBoard();
+}
+
+/* ------- EXPORT JSON ------- */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(board, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "board.json";
+  a.download = "board-data.json";
   a.click();
-};
-
-// Modal controls
-window.openClientModal = function(colIndex) {
-  document.getElementById("clientModal").classList.add("show");
-};
-
-window.closeClientModal = function() {
-  document.getElementById("clientModal").classList.remove("show");
-}else{alert("Mot de passe incorrect");}
->>>>>>> c74636b code produit blabla 
-
-function renameClient(cardId) {
-  const new = cardInnerText("board-save.json") ? JSON.parse(saveTaskContent());
-  if(!colIDBColumns[iCarte]) return [];
-  if(ev.type == "card"){col.appendChild(()=> moveCarte.fieldsName = ""}
 }
 
-window.deleteClient = function(colKey, clientID){
-  const colInnerText = row => {
-    if(!colInnerTDN) return HTMLResponse();
-    colInnerCommentaire(`${Date.now()}`)};
-};
+/* ------- Déconnexion ------- */
+function logout() {
+  localStorage.clear();
+  sessionStorage.clear();
+  location.href = "index.html";
+}
 
+renderBoard();
