@@ -13,119 +13,170 @@
     <img src="logo.png" alt="DTN SmartOps" class="logo"/>
     <span class="brand-title"><b>DTN</b><span class="accent"> SmartOps</span></span>
   </div>
+
   <div class="actions">
     <input id="newColumnName" class="input" placeholder="Nom de la colonne…" />
-    <button id="addColumnBtn" class="btn btn-primary">Ajouter colonne</button>
-    <button onclick="openModal()" class="btn btn-accent">+ Nouveau client</button>
+    <button onclick="addColumn()" class="btn btn-primary">+ Ajouter colonne</button>
+    <button onclick="openModal()" class="btn btn-accent">+ Nouveau Client</button>
   </div>
 </header>
 
-<main id="board" class="board"></main>
+<main id="board" class="board-container"></main>
 
 <!-- MODALE NOUVEAU CLIENT -->
 <div id="clientModal" class="modal">
-  <div class="modal-content">
-    <h3>Créer un Client</h3>
+  <div class="modal-card">
+    <h3>Ajouter un client</h3>
 
-    <form id="clientForm">
-      <input name="lastname" placeholder="Nom" required />
-      <input name="firstname" placeholder="Prénom" required />
-      <input name="tel" placeholder="Téléphone" />
-      <input name="address" placeholder="Adresse postale" />
-      <input name="email" type="email" placeholder="Adresse mail" />
-      <textarea name="comment" placeholder="Commentaire…" rows="3"></textarea>
+    <form onsubmit="createClient(event)">
+      <input id="m-lastname" placeholder="Nom" required />
+      <input id="m-firstname" placeholder="Prénom" required />
+      <input id="m-tel" placeholder="Téléphone" />
+      <input id="m-address" placeholder="Adresse postale" />
+      <input id="m-email" type="email" placeholder="Adresse mail" />
+      <textarea id="m-comment" placeholder="Commentaire…" rows="3"></textarea>
 
-      <select name="work">
-        <option>Fibre (Télécom)</option>
+      <select id="m-work">
+        <option>Fibre optique / Télécom</option>
         <option>Électricité générale</option>
-        <option>IRVE (Borne recharge)</option>
+        <option>IRVE / Borne de recharge</option>
         <option>Photovoltaïque</option>
         <option>Terrassement / Génie civil</option>
-        <option>Détection réseaux / regard</option>
+        <option>Détection des réseaux / regard</option>
         <option>Autres</option>
       </select>
 
-      <div class="form-actions">
+      <div class="modal-actions">
         <button type="button" onclick="closeModal()" class="btn btn-danger">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer</button>
       </div>
     </form>
+
+    <div class="modal-actions">
+      <button type="button" class="btn">Déconnexion</button></a>
+    </div>
   </div>
 </div>
-<div id="modalBackdrop" class="backdrop"></div>
+<div id="modalBackdrop" class="backdrop" onclick="closeModal()"></div>
 
 <!-- EXPORT JSON -->
 <div class="export-bar">
   <button onclick="exportJSON()" class="btn">💾 Télécharger board-data.json</button>
-  <button onclick="logout()" class="btn btn-danger">Déconnexion</button>
 </div>
 
 <script>
-// 🔐 Protection accès par mot de passe déjà ok
-if(!sessionStorage.getItem("auth")) {
-  const p = prompt("Mot de passe requis :");
-  if(p === "DTN-2025-secure-base") sessionStorage.setItem("auth","1");
+// 🔐 Protection accès direct
+if (!localStorage.getItem("auth")) {
+  const p = prompt("Mot de passe requis 🔐");
+  if (p === "DTN-2025-secure-base") localStorage.setItem("auth","1");
   else location.href="index.html";
 }
 
-// Donnes boardData local
+// 🧠 Données stockées localement
 let boardData = JSON.parse(localStorage.getItem("kanbanData") || '{"columns":[]}');
 
-function openModal() {
-  document.getElementById("clientModal").classList.add("open");
+function saveBoard() {
+  localStorage.setItem("kanbanData", JSON.stringify(boardData));
 }
 
-function openModal() {
-  document.getElementById("clientModal").classList.add("open");
+function renderBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  boardData.columns.forEach(col => {
+    const div = document.createElement("div");
+    div.className = "column";
+    div.dataset.key = col.id;
+    div.innerHTML = `
+      <h3>${col.name}</h3>
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+    board.appendChild(div);
+
+    const container = document.getElementById(`cards-${col.id}`);
+    if (container) {
+      (col.cards || []).forEach(c => {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "card";
+        cardDiv.innerText = c;
+        container.appendChild(cardDiv);
+      });
+    }
+  });
 }
 
-function closeModal() {
-  document.getElementById("clientModal").classList.remove("open");
-}
-
-function closeModal() {
-  document.getElementById("clientModal").classList.remove("open");
-}
-
-// Colonnes : ajout
-document.getElementById("addColumnBtn").onclick = () => {
+function addColumn() {
   const name = document.getElementById("newColumnName").value.trim();
-  if(!name) return;
-  boardData.columns.push({name, cards: []});
-  localStorage.setItem("kanbanData", JSON.stringify(boardData));
-  localStorage.setItem("kanbanData", JSON.stringify(boardData));
-  localStorage.setItem("kanbanData", JSON.stringify(boardData));
+  if (!name) {
+    alert("⚠️ Entre un nom de colonne !");
+    return;
+  }
+
+  const newColumn = {
+    id: Date.now().toString(),
+    name: name,
+    cards: []
+  };
+
+  boardData.columns.push(newColumn);
+  saveBoard();
   renderBoard();
+  render();
 }
 
-// Créer carte client dans 1ere colonne
-document.getElementById("clientForm").onsubmit = ev => {
-  ev.preventDefault();
-  const fd = new FormData(document.getElementById("clientForm"));
-  const card = {
-    id: Date.now(),
-    title: `${last} ${first}`,
-    lastKey: `${columns[0].id || ''}`,
-    colIndex: `${columns.length}`
-  };
-};
+// Créer un client dans la 1ère colonne
+function createClient(event) {
+  event.preventDefault();
 
-async function exportJSON(){
-  ev.preventDefault();
-  const blob = new Blob([JSON.stringify(boardData, null, 2)], {type:"application/json"});
+  const last = document.getElementById("m-lastname").value.trim();
+  const first = document.getElementById("m-firstname").value.trim();
+  const tel = document.getElementById("m-tel").value.trim();
+  const address = document.getElementById("m-address").value.trim();
+  const email = document.getElementById("m-email").value.trim();
+  const comment = document.getElementById("m-comment").value.trim();
+  const work = document.getElementById("m-work").value;
+
+  const card = `👤 ${last} ${first}
+📞 ${tel}
+🏠 ${address}
+📧 ${email}
+🛠 ${work}
+💬 ${comment}`;
+
+  if (boardData.columns.length === 0) {
+    // créer une colonne par defaut si vide
+    boardData.columns.push({id: 'default-1', name: 'À faire', cards: []});
+  }
+
+  boardData.columns[0].cards.push(card);
+  saveBoard();
+  renderBoard();
+  closeModal();
+}
+
+// Modal controls
+function openModal() {
+  document.getElementById("clientModal").style.display = "flex";
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("clientModal").style.display = "none";
+  document.getElementById("modalBackdrop").classList.remove("show");
+}
+
+// Export JSON
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(boardData, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "board-data.json";
   a.click();
-};
+}
 
-function logout(){
-  localStorage.clear();
-  sessionStorage.clear();
-  location.href='index.html';
-};
-
+// 1er rendu
+renderBoard();
 </script>
+
 <script src="app.js"></script>
 </body>
 </html>
