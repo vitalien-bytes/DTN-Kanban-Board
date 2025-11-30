@@ -1,7 +1,0 @@
-{
-  "columns": [
-    { "name": "À faire", "cards": ["Installer fibre", "Changer prise"] },
-    { "name": "En cours", "cards": ["Test préampli"] },
-    { "name": "Terminé", "cards": ["RDV Cedric"] }
-  ]
-}
