@@ -1,63 +1,4 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DTN SmartOps</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-
-<header class="topbar">
-  <div class="brand">
-    <img src="logo.png" alt="Logo DTN" class="logo" />
-    <span class="brand-text"><b>DTN</b><span class="accent"> SmartOps</span></span>
-  </div>
-
-  <div class="actions">
-    <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
-    <button onclick="addClientToColumn()" class="btn btn-accent">➕ Ajouter client (rapide)</button>
-    <button onclick="saveBoard()" class="btn btn-accent">💾 Sauvegarder</button>
-  </div>
-</header>
-
-<main id="kanban-board" class="board-container"></main>
-
-<!-- MODALE AJOUT CLIENT -->
-<div id="clientModal" class="modal">
-  <div class="modal-card">
-    <h3>Nouveau client</h3>
-    <form onsubmit="createClient(event)">
-      <input id="lastname" placeholder="Nom" required />
-      <input id="firstname" placeholder="Prénom" required />
-      <input id="tel" placeholder="Téléphone" />
-      <input id="address" placeholder="Adresse postale" />
-      <input id="email" type="email" placeholder="Adresse mail" />
-      <textarea id="comment" placeholder="Commentaire…" rows="3"></textarea>
-      <select id="work">
-        <option>Fibre optique / Télécom</option>
-        <option>Électricité générale</option>
-        <option>IRVE / Borne de recharge</option>
-        <option>Photovoltaïque</option>
-        <option>Terrassement / Génie civil</option>
-        <option>Détection réseaux / regard</option>
-        <option>Autres</option>
-      </select>
-
-      <div class="modal-actions">
-        <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
-        <button type="submit" class="btn btn-primary">Créer</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script>
-/* ============================
-   KANBAN BOARD LOGIQUE
-============================== */
-
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
 if (!boardData) {
@@ -76,11 +17,57 @@ function saveBoard() {
   alert("Sauvegarde réussie ✔");
 }
 
+function openClientModal() {
+  document.getElementById("clientModal").classList.add("open");
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").classList.remove("open");
+}
+
+function createClient(e) {
+  e.preventDefault();
+
+  const newClient = {
+    id: Date.now().toString(),
+    lastname: document.getElementById("lastname").value.trim(),
+    firstname: document.getElementById("firstname").value.trim(),
+    tel: document.getElementById("tel").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    work: document.getElementById("work").value,
+    comment: document.getElementById("comment").value.trim()
+  };
+
+  boardData.columns[0].cards.push(newClient);
+  saveBoard();
+  renderBoard();
+  closeClientModal();
+  e.target.reset();
+}
+
+function moveClient(clientId, fromColIndex, toColId) {
+  const fromCol = boardData.columns[fromColIndex];
+  const toCol = boardData.columns.find(c => c.id === toColId);
+  if (!fromCol || !toCol) return;
+
+  const client = fromCol.cards.find(c => c.id == clientId);
+  if (!client) return;
+
+  fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
+  toCol.cards.push(client);
+  saveBoard();
+  renderBoard();
+}
+
+/* ======== AFFICHAGE DES COLONNES => corrigé ici ======== */
+
 function renderBoard() {
-  const board = document.getElementById("kaunban-board");
+  const board = document.getElementById("kanban-board");
   board.innerHTML = "";
 
   boardData.columns.forEach((col, colIndex) => {
+
     const colDiv = document.createElement("div");
     colDiv.className = "column";
 
@@ -91,6 +78,7 @@ function renderBoard() {
         <div class="menu-list" id="menu-${col.id}">
           <button onclick="renameColumn('${col.id}')">Renommer</button>
           <button onclick="deleteColumn('${col.id}')">Supprimer</button>
+          <button onclick="addClientToSpecificColumn(${colIndex})">+ Ajouter client</button>
         </div>
       </div>
       <div class="cards" id="cards-${col.id}"></div>
@@ -100,7 +88,7 @@ function renderBoard() {
 
     const cardsDiv = document.getElementById(`cards-${col.id}`);
 
-    // drag & drop colonnes
+    // activation Drag & Drop sur la colonne
     cardsDiv.ondragover = ev => ev.preventDefault();
     cardsDiv.ondrop = ev => {
       const cardId = ev.dataTransfer.getData("clientId");
@@ -108,7 +96,7 @@ function renderBoard() {
       moveClient(cardId, fromIndex, col.id);
     };
 
-    // affichage cartes
+    // Ajout des cartes dans chaque colonne
     col.cards.forEach(client => {
       const card = document.createElement("div");
       card.className = "card";
@@ -136,25 +124,15 @@ function renderBoard() {
 
       cardsDiv.appendChild(card);
     });
+
   });
 }
 
-function moveClient(clientId, fromColIndex, toColId) {
-  const fromCol = boardData.columns[fromColIndex];
-  const toCol = boardData.columns.find(c => c.id === toColId);
-  if (!fromCol || !toCol) return;
-
-  const client = fromCol.cards.find(c => c.id == clientId);
-  if (!client) return;
-
-  fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
-  toCol.cards.push(client);
-  saveBoard();
-  renderBoard();
-}
+/* ======== FONCTIONS COLONNES ======== */
 
 function renameColumn(colId) {
   const col = boardData.columns.find(c => c.id === colId);
+  if (!col) return;
   const newName = prompt("Nom colonne :", col.name);
   if (!newName) return;
   col.name = newName;
@@ -169,42 +147,8 @@ function deleteColumn(colId) {
   renderBoard();
 }
 
-function editCard(colId, clientId) {
-  const col = boardData.columns.find(c => c.id === colId);
-  const client = col.cards.find(c => c.id == clientId);
-  const newComment = prompt("Commentaire :", client.comment || "");
-  if (newComment === null) return;
-  client.comment = newComment;
-  saveBoard();
-  renderBoard();
-}
-
-function deleteClient(colId, clientId) {
-  const col = boardData.columns.find(c => c.id === colId);
-  col.cards = col.cards.filter(c => c.id !== clientId);
-  saveBoard();
-  renderBoard();
-}
-
-function toggleMenu(id, event) {
-  event.stopPropagation();
-  document.getElementById(id)?.classList.toggle("open");
-}
-
-/* ========== MODALE ========== */
-
-function openClientModal() {
-  document.getElementById("clientModal").classList.add("open");
-}
-
-function closeClientModal() {
-  document.getElementById("clientModal").classList.remove("open");
-}
-
-/* ========== AJOUT RAPIDE ========== */
-
-function addClientToColumn() {
-  const col = boardData.columns[0];
+function addClientToSpecificColumn(colIndex) {
+  const col = boardData.columns[colIndex];
   const lastname = prompt("Nom du client ?");
   const firstname = prompt("Prénom ?");
   if (!lastname || !firstname) return;
@@ -224,15 +168,36 @@ function addClientToColumn() {
   renderBoard();
 }
 
-/* ========== INIT ========== */
+function editCard(colId, clientId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  if (!col) return;
+  const client = col.cards.find(c => c.id == clientId);
+  if (!client) return;
+  const newComment = prompt("Modifier commentaire :", client.comment || "");
+  if (newComment === null) return;
+  client.comment = newComment;
+  saveBoard();
+  renderBoard();
+}
 
-// fermeture menus si clic hors menu
-document.addEventListener("click", () => {
+function deleteClient(colId, clientId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  if (!col) return;
+  col.cards = col.cards.filter(c => c.id !== clientId);
+  saveBoard();
+  renderBoard();
+}
+
+function toggleMenu(id, event) {
+  event.stopPropagation();
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const isOpen = menu.classList.contains("open");
   document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-});
+  if (!isOpen) menu.classList.add("open");
+}
+
+/* ========== INIT ========== */
 
 renderBoard();
 </script>
-
-</body>
-</html>
