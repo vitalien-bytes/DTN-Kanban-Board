@@ -1,117 +1,40 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Board - DTN SmartOps</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body onload="loadBoard()">
-
-<header>
-  <h1>DTN SmartOps Board</h1>
-  <button onclick="logout()">Déconnexion</button>
-</header>
-
-<main>
-  <div id="board" class="kanban-board">
-      <!-- Les colonnes seront générées ici -->
-  </div>
-</main>
+<main id="board" class="board"></main>
 
 <script>
-const driveFileId = null; // placeholder si tu veux mettre plus tard
-const driveDataUrl = null;
+const board = document.getElementById("board");
 
-const columns = ["À faire", "En cours", "Terminé"];
+// Charger les données depuis un Drive partagé (ex: Google Drive ou OneDrive)
+const DATA_URL = "TON_URL_PARTAGE_DRIVE_ICI";
 
-function loadBoard() {
-  if (!sessionStorage.getItem("auth")) {
-    window.location.href = "index.html";
+// Fonction pour charger le JSON
+async function loadBoard() {
+  try {
+    const res = await fetch(DATA_URL);
+    const data = await res.json();
+    buildBoard(data.columns);
+  } catch (e) {
+    board.innerHTML = "<p>Erreur de chargement des données ❌</p>";
+    console.error(e);
   }
+}
 
-  const saved = localStorage.getItem("kanbanData");
-  const data = saved ? JSON.parse(saved) : { cards: [] };
-
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-
-  columns.forEach(stage => {
-    const col = document.createElement("div");
-    col.className = "kanban-column";
-    col.innerHTML = `<h3>${stage}</h3><div class="card-list" id="${stage}"></div>`;
-    board.appendChild(col);
-  });
-
-  data.cards.forEach(card => {
-    const cardEl = document.createElement("div");
-    cardEl.className = "kanban-card";
-    cardEl.textContent = card.title;
-    document.getElementById(card.stage).appendChild(cardEl);
-  });
-
-  if (dataUrl) {
-    fetch(dataUrl).then(r => r.json()).then(shared => {
-      mergeShared(shared);
+// Fonction pour construire le tableau
+function buildBoard(columns) {
+  board.innerHTML = ""; // reset board
+  columns.forEach(col => {
+    const div = document.createElement("div");
+    div.className = "column";
+    div.innerHTML = `<h3>${col.name}</h3>`;
+    col.cards.forEach(card => {
+      const c = document.createElement("div");
+      c.className = "card";
+      c.textContent = card;
+      div.appendChild(c);
     });
-  }
-}
-
-function mergeShared(shared) {
-  const local = JSON.parse(localStorage.getItem("kanbanData") || `{"cards":[]}`);
-  const merged = { cards: [...local.cards] };
-
-  shared.cards.forEach(sc => {
-    if (!local.cards.find(c => c.id === sc.id)) {
-      merged.cards.push(sc);
-    }
+    board.appendChild(div);
   });
-
-  localStorage.setItem("kanbanData", JSON.stringify(merged));
-  merged.cards.forEach(c => renderColumn(c));
 }
 
-function logout() {
-  sessionStorage.removeItem("auth");
-  window.location.href = "index.html";
-}
-
-function loadBoard() {
-  const dataUrl = dataUrl ? `{\kanbanData}` : null;
-
-  const merged = JSON.parse(localStorage.getItem("kanbanData") || `{"cards":[]}`);
-
-  merged.cards.forEach(c => mergedColumn(c));
-}
-
-function newCard(stage) {
-  const title = prompt("Titre de la carte :");
-    if (!title) return;
-
-    const data = JSON.parse(localStorage.getItem("kanbanData") || `{"cards":[]}`);
-
-    const id = Date.now().toString();
-
-    const card = { id, title, stage };
-
-    data.cards.push(card);
-
-    localStorage.setItem("kanbanData", JSON.stringify(data));
-    cardList(JSON.stringify(data));
-
-function saveToDrive() {
-  const data = localStorage.getItem("kanbanData") || `{"cards":[]}`;
-  alert("Ajoute maintenant ce JSON sur ton Drive à l'emplacement partagé 👌\n\n" + data);
-}
-
-function renderColumn(sc) {
-  const card = document.createElement("div");
-  card.className = "kanban-card";
-  card.textContent = stageColumn(cardEl);
-  document.getElementById(sendToDrive()Input).appendChild(card);
-}
-
+// Déclenche
+loadBoard();
 </script>
-
-</body>
-</html>
