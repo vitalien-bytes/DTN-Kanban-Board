@@ -10,24 +10,27 @@
 
 <header class="topbar">
   <div class="brand">
-    <img src="logo.png" alt="DTN SmartOps" class="logo"/>
-    <span class="brand-title"><b>DTN</b><span class="accent"> SmartOps</span></span>
+    <img src="logo.png" alt="Logo" class="logo"/>
+    <span class="brand-title">DTN <span class="accent">SmartOps</span></span>
   </div>
-
   <div class="actions">
-    <input id="newColumnName" class="input" placeholder="Nom de la colonne…" />
-    <button onclick="addColumn()" class="btn btn-primary">+ Ajouter colonne</button>
-    <button onclick="openModal()" class="btn btn-accent">+ Nouveau Client</button>
+    <button onclick="openModal()" class="btn btn-accent">+ Nouveau client</button>
   </div>
 </header>
+
+<div class="export-bar">
+  <input id="newColumnName" class="input" placeholder="Nom de la colonne…" />
+  <button onclick="addColumn()" class="btn btn-primary">+ Ajouter colonne</button>
+  <button onclick="exportJSON()" class="btn">💾 Télécharger board-data.json</button>
+  <button onclick="logout()" class="btn btn-danger">Déconnexion</button>
+</div>
 
 <main id="board" class="board-container"></main>
 
 <!-- MODALE NOUVEAU CLIENT -->
 <div id="clientModal" class="modal">
   <div class="modal-card">
-    <h3>Ajouter un client</h3>
-
+    <h3>Nouveau Client</h3>
     <form onsubmit="createClient(event)">
       <input id="m-lastname" placeholder="Nom" required />
       <input id="m-firstname" placeholder="Prénom" required />
@@ -42,138 +45,229 @@
         <option>IRVE / Borne de recharge</option>
         <option>Photovoltaïque</option>
         <option>Terrassement / Génie civil</option>
-        <option>Détection des réseaux / regard</option>
+        <option>Détection réseaux / regard</option>
         <option>Autres</option>
       </select>
 
       <div class="modal-actions">
-        <button type="button" onclick="closeModal()" class="btn btn-danger">Annuler</button>
+        <button type="button" onclick="closeModal()" class="btn">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer</button>
       </div>
     </form>
-
-    <div class="modal-actions">
-      <button type="button" class="btn">Déconnexion</button></a>
-    </div>
   </div>
 </div>
 <div id="modalBackdrop" class="backdrop" onclick="closeModal()"></div>
 
-<!-- EXPORT JSON -->
-<div class="export-bar">
-  <button onclick="exportJSON()" class="btn">💾 Télécharger board-data.json</button>
-</div>
-
 <script>
-// 🔐 Protection accès direct
+// 🔐 Protection accès
 if (!localStorage.getItem("auth")) {
   const p = prompt("Mot de passe requis 🔐");
   if (p === "DTN-2025-secure-base") localStorage.setItem("auth","1");
   else location.href="index.html";
 }
 
-// 🧠 Données stockées localement
-let boardData = JSON.parse(localStorage.getItem("kanbanData") || '{"columns":[]}');
+// Charger mémoire board
+const defaultData = { columns: [] };
+let boardData = JSON.parse(localStorage.getItem("kanbanData") || JSON.stringify(defaultData));
+localStorage.setItem("kanbanData", JSON.stringify(boardData));
 
-function saveBoard() {
-  localStorage.setItem("kanbanData", JSON.stringify(boardData));
-}
-
-function renderBoard() {
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-  boardData.columns.forEach(col => {
-    const div = document.createElement("div");
-    div.className = "column";
-    div.dataset.key = col.id;
-    div.innerHTML = `
-      <h3>${col.name}</h3>
-      <div class="cards" id="cards-${col.id}"></div>
-    `;
-    board.appendChild(div);
-
-    const container = document.getElementById(`cards-${col.id}`);
-    if (container) {
-      (col.cards || []).forEach(c => {
-        const cardDiv = document.createElement("div");
-        cardDiv.className = "card";
-        cardDiv.innerText = c;
-        container.appendChild(cardDiv);
-      });
-    }
-  });
-}
-
+// Ajouter une colonne
 function addColumn() {
-  const name = document.getElementById("newColumnName").value.trim();
-  if (!name) {
-    alert("⚠️ Entre un nom de colonne !");
-    return;
-  }
-
-  const newColumn = {
-    id: Date.now().toString(),
-    name: name,
-    cards: []
-  };
-
-  boardData.columns.push(newColumn);
+  const n = document.getElementById("newColumnName").value.trim();
+  if (!n) return alert("⚠️ Nom requis");
+  boardData.columns.push({ id: Date.now().toString(), name: n, cards: [] });
+  localStorage.setItem("kanbanData", JSON.stringify(board));
   saveBoard();
   renderBoard();
-  render();
-}
+};
 
-// Créer un client dans la 1ère colonne
-function createClient(event) {
-  event.preventDefault();
-
-  const last = document.getElementById("m-lastname").value.trim();
-  const first = document.getElementById("m-firstname").value.trim();
-  const tel = document.getElementById("m-tel").value.trim();
-  const address = document.getElementById("m-address").value.trim();
-  const email = document.getElementById("m-email").value.trim();
-  const comment = document.getElementById("m-comment").value.trim();
-  const work = document.getElementById("m-work").value;
-
-  const card = `👤 ${last} ${first}
-📞 ${tel}
-🏠 ${address}
-📧 ${email}
-🛠 ${work}
-💬 ${comment}`;
-
-  if (boardData.columns.length === 0) {
-    // créer une colonne par defaut si vide
-    boardData.columns.push({id: 'default-1', name: 'À faire', cards: []});
-  }
-
-  boardData.columns[0].cards.push(card);
-  saveBoard();
-  renderBoard();
-  closeModal();
-}
-
-// Modal controls
+// Modal
 function openModal() {
   document.getElementById("clientModal").style.display = "flex";
   document.getElementById("modalBackdrop").classList.add("show");
 }
-
 function closeModal() {
   document.getElementById("clientModal").style.display = "none";
   document.getElementById("modalBackdrop").classList.remove("show");
 }
 
-// Export JSON
-function exportJSON() {
+// Créer un client
+function createClient(ev) {
+  ev.preventDefault();
+  const last = document.getElementById("m-lastname").value.trim();
+  const first = document.getElementById("m-firstname").value.trim();
+  const tel = document.getElementById("m-tel").value.trim();
+  const addr = document.getElementById("m-address").value.trim();
+  ev.preventDefault();
   const blob = new Blob([JSON.stringify(boardData, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "board-data.json";
   a.click();
+};
+
+// Fonction de sauvegarde JSON
+async function syncDB() {
+  try {
+    const res = await fetch(DATABASE_URL);
+    boardData = await res.json();
+    renderBoard();
+  } catch (e) {
+    console.error("Echec de la syncronisation", e);
+  }
+};
+
+// Protection modal pour nouveau client
+function openDrawer(){
+  return createCard();
+};
+const pst = Open Drawer; // redirige vers col 1
+if(document.readyState === 'complete') {
+  window.loadJSON = boot-json = null;
 }
 
-// 1er rendu
+// Fonction de sauvegarder board
+function saveBoard(){
+  localStorage.setItem('kanbanData', JSON.stringify(boardData));
+  alert("✅ Sauvegarde locale !");
+  render();
+};
+window.createTask = function(cardId) {
+  if(boardData.columns.length === 0) boardData.columns[0].cards.push(col);
+};
+
+// supprimer une carte
+window.deleteTask = function(cardId) {
+  if (confirm("Supprimer ce client ?")) {
+    boardData.forEach(column => {
+      if(column.cards) remove(headerIndex.id);
+    });
+  }
+};
+
+// 1er rendu board
+function render(){
+  const board = document.getElementById("board");
+  board.innerHTML="";
+
+  boardData.columns.forEach((col, i) => {
+    const div=document.createElement("div");
+    div.className="column";
+    div.id=col.id;
+    div.innerHTML=`
+      <div class='column-head'>
+        <h3 class='column-title'>${col.name}</h3>
+        <div class="menu">
+          <button class="icon-btn" onclick="toggleMenu('menu-${col.id}')">⋮</button>
+          <div class="menu-list" id="menu-${col.id}">
+            <button onclick="editColumn('${col.id}')">Modifier</button>
+            <button onclick="removeColumn('${col.id}')">Supprimer</button>
+          </div>
+        </div>
+      </div>
+      <div class='cards' id='cards-${col.id}'></div>
+    `;
+    board.appendChild(div);
+
+    // Injecter cartes
+    const cc=document.getElementById(`cards-${col.id}`);
+    col.cards.forEach(card=>{
+      const c=document.createElement("div");
+      c.className="card";
+      c.setAttribute("ondragstart","onDragStart(event,"+i+","+i+")");
+      c.innerHTML=`
+        ${card}
+        <div class="menu" style="float:right">
+          <button class="icon-btn" onclick="toggleMenu('menu-${content.id}')">⋮</button>
+          <div class="menu-list" id="menu-${content.id}">
+            <button onclick="editCard('${container.id}','${content.id}')">Modifier</button>
+            <button onclick="deleteCard('${container.id}','${content.id}')">Supprimer</button>
+          </div>
+        </div>
+      `;
+      cc.appendChild(c);
+
+      c.pivotDrop=true;
+      c.ondragover=onDragOver;
+      c.ondrop=ev=>onDrop(ev,i);
+    });
+  });
+}
+
+// Toggle menu
+function toggleMenu(id) {
+  const m = document.getElementById(id);
+  m.classList.toggle("open");
+  div.className = "chip";
+  div.innerText = col.cards;
+}
+
+// Modifier / Supprimer colonnes
+function editColumn(id) {
+  const newName = prompt("📝 Nouveau nom de colonne :");
+  if (!newName) return;
+  const col = boardData.columns.find(c => c.id === id);
+  if (col) {
+    col.name = newName;
+    saveBoard();
+    renderBoard();
+  }
+}
+
+function removeColumn(id) {
+  if (!confirm("Supprimer cette colonne ?")) return;
+  boardData.columns = boardData.columns.filter(c => c.id !== id);
+  saveBoard();
+  renderBoard();
+}
+
+// Modifier / Supprimer cartes
+function editCard(columnId, cardId) {
+  const newText = prompt("Modifier la fiche client :");
+  if (!newText) return;
+  const col = boardData.columns.find(c => c.id === columnId);
+  if (col) {
+    const idx = col.cards.findIndex(c => c.id == cardId);
+    if (idx !== -1) {
+      col.cards[idx].title = newText;
+      saveBoard();
+      renderBoard();
+    }
+  }
+}
+
+function deleteCard(columnId, cardId) {
+  const col = boardData.columns.find(c => c.id === columnId);
+  if (col) {
+    col.cards = col.cards.filter(c => c.id !== id);
+  };
+
+function onDragStart(ev, i, j){
+  ev.dataTransfer.setData("card",col.cards[i]);
+  ev.dataTransfer.setData("from",i);
+}
+
+function onDragOver(ev){ev.preventDefault();}
+
+function onDrop(ev, toCol){
+  ev.preventDefault();
+  const card=ev.dataTransfer.getData("card");
+  const f=ev.dataTransfer.getData("from");
+  columns[f] = columns[f].filter(c => id !== cardId);
+  columns[toCol] = [];
+  saveBoard();
+  downloadBackup();
+}
+
+function exportJSON() {
+  const json = JSON.stringify(columns, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "board-data.json";
+  a.click();
+};
+
 renderBoard();
 </script>
 
