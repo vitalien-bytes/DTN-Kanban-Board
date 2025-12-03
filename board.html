@@ -4,107 +4,230 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DTN SmartOps</title>
-
-  <!-- Favicon (ton logo simplifié en PNG transparent) -->
-  <link rel="icon" type="image/png" href="/static/favicon.png" />
-
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Style rapide pour la fiche client */
+    .client-sheet {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 15px;
+    }
+    .client-sheet strong {
+      color: #222;
+    }
+    .modal-card.client {
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+  </style>
 </head>
-<body class="light">
-  <header class="topbar">
-    <div class="brand">
-      <img src="/static/logo.png" alt="DTN SmartOps" class="logo" />
-      <span class="brand-text"><b>DTN</b><span class="accent">SmartOps</span></span>
-    </div>
 
-    <div class="actions">
-      <input id="newColumnName" class="input" placeholder="Nom de la colonne…" />
-      <button id="addColumnBtn" class="btn btn-primary">Ajouter colonne</button>
-      <button id="openDrawerBtn" class="btn btn-accent">+ Nouvelle tâche</button>
-    </div>
-  </header>
+<body>
 
-  <main id="board" class="board">
-    <!-- Colonnes injectées par JS -->
-  </main>
+<header class="topbar">
+  <div class="brand">
+    <img src="logo.png" alt="Logo DTN" class="logo" />
+    <span class="brand-text"><b>DTN</b><span class="accent"> SmartOps</span></span>
+  </div>
 
-  <!-- =============== Panneau latéral : Nouvelle tâche =============== -->
-  <aside id="drawer" class="drawer">
-    <div class="drawer-header">
-      <h3>Nouvelle tâche</h3>
-      <button id="drawerClose" class="icon-btn" aria-label="Fermer">✕</button>
-    </div>
+  <div class="actions">
+    <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
+    <button onclick="addColumn()" class="btn btn-accent">🆕 Nouvelle colonne</button>
+    <button onclick="saveBoard()" class="btn btn-accent">💾 Sauvegarder</button>
+  </div>
+</header>
 
-    <form id="taskForm" class="form">
-      <div class="grid-2">
-        <label>Prénom
-          <input name="firstname" class="input" placeholder="Jean" required />
-        </label>
-        <label>Nom
-          <input name="lastname" class="input" placeholder="Dupont" required />
-        </label>
-      </div>
+<main id="kanban-board" class="board-container"></main>
 
-      <label>Téléphone
-        <input name="phone" class="input" placeholder="06 12 34 56 78" />
-      </label>
+<!-- Modal nouveau client -->
+<div id="clientModal" class="modal">
+  <div class="modal-card">
+    <h3>Nouveau client</h3>
+    <form onsubmit="createClient(event)">
+      <input id="lastname" placeholder="Nom" required />
+      <input id="firstname" placeholder="Prénom" required />
+      <input id="tel" placeholder="Téléphone" />
+      <input id="address" placeholder="Adresse postale" />
+      <input id="email" type="email" placeholder="Adresse mail" />
+      <textarea id="comment" placeholder="Commentaire…" rows="3"></textarea>
+      <select id="work">
+        <option>Fibre / Télécom</option>
+        <option>Électricité</option>
+        <option>IRVE</option>
+        <option>Photovoltaïque</option>
+        <option>Terrassement</option>
+        <option>Détection réseaux</option>
+        <option>Autres</option>
+      </select>
 
-      <label>Email
-        <input type="email" name="email" class="input" placeholder="client@mail.com" />
-      </label>
-
-      <label>Adresse postale
-        <textarea name="address" class="input" rows="2" placeholder="N°, rue, compl., CP Ville"></textarea>
-      </label>
-
-      <label>Catégorie de travaux
-        <select name="category" id="category" class="input">
-          <option value="Électricité">Électricité</option>
-          <option value="Télécom">Télécom</option>
-          <option value="GC">GC</option>
-          <option value="Viabilisation">Viabilisation</option>
-          <option value="Panneaux solaires">Panneaux solaires</option>
-          <option value="Borne IRVE">Borne IRVE</option>
-          <option value="Autre">Autre…</option>
-        </select>
-      </label>
-
-      <label id="customCatWrap" class="hidden">Nouvelle catégorie
-        <input name="customCategory" class="input" placeholder="Saisir la catégorie" />
-      </label>
-
-      <label>Date de RDV
-        <input type="date" name="date" class="input" />
-      </label>
-
-      <label>Notes (interne)
-        <textarea name="notes" class="input" rows="3" placeholder="Détails, contraintes, etc."></textarea>
-      </label>
-
-      <div class="form-actions">
-        <button type="button" id="cancelTask" class="btn">Annuler</button>
+      <div class="modal-actions">
+        <button type="button" onclick="closeClientModal()" class="btn close-btn">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer</button>
       </div>
     </form>
-  </aside>
-  <div id="drawerBackdrop" class="backdrop"></div>
+  </div>
+</div>
 
-  <!-- =============== Modale fiche client =============== -->
-  <div id="cardModal" class="modal">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="modalTitle">Fiche client</h3>
-        <button id="modalClose" class="icon-btn" aria-label="Fermer">✕</button>
-      </div>
-      <div class="modal-body" id="modalBody"></div>
-      <div class="modal-actions">
-        <button id="modalEdit" class="btn">Modifier</button>
-        <button id="modalDelete" class="btn btn-danger">Supprimer</button>
-      </div>
+<!-- Modal fiche client -->
+<div id="sheetModal" class="modal">
+  <div id="sheetCard" class="modal-card client client-card">
+    <h3>Fiche Client</h3>
+    <div id="clientSheet" class="client-sheet"></div>
+    <div style="display:flex;justify-content:end;margin-top:12px">
+      <button onclick="closeSheet()" class="btn close-btn">Fermer</button>
     </div>
   </div>
-  <div id="modalBackdrop" class="backdrop"></div>
+</div>
 
-  <script src="/static/app.js"></script>
+<script>
+
+let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
+
+if (!boardData) {
+  boardData = {
+    columns: [
+      { id: "col-1", name: "À faire", cards: [] },
+      { id: "col-2", name: "En cours", cards: [] },
+      { id: "col-3", name: "Terminé", cards: [] }
+    ]
+  };
+  localStorage.setItem("boardData", JSON.stringify(boardData));
+}
+
+function saveBoard() {
+  localStorage.setItem("boardData", JSON.stringify(boardData));
+  alert("Board sauvegardé ✔");
+}
+
+function openClientModal() {
+  document.getElementById("clientModal").classList.add("open");
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").classList.remove("open");
+}
+
+function createClient(e) {
+  e.preventDefault();
+
+  const newClient = {
+    id: Date.now().toString(),
+    lastname: document.getElementById("lastname").value.trim(),
+    firstname: document.getElementById("firstname").value.trim(),
+    tel: document.getElementById("tel").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    work: document.getElementById("work").value,
+    comment: document.getElementById("comment").value.trim()
+  };
+
+  boardData.columns[0].cards.push(newClient);
+  saveBoard();
+  closeClientModal();
+  renderBoard();
+  e.target.reset();
+}
+
+function openSheet(client, colId, index) {
+  // Affiche les infos dans la fiche
+  document.getElementById("clientSheet").innerHTML = `
+    <p><strong>Nom :</strong> ${client.lastname}</p>
+    <p><strong>Prénom :</strong> ${client.firstname}</p>
+    <p><strong>Téléphone :</strong> ${client.tel || "-"}</p>
+    <p><strong>Adresse :</strong> ${client.address || "-"}</p>
+    <p><strong>Email :</strong> ${client.email || "-"}</p>
+    <p><strong>Travail :</strong> ${client.work || "-"}</p>
+    <p><strong>Commentaire :</strong><br>${client.comment || "-"}</p>
+  `;
+
+  // Affiche la modale
+  document.getElementById("sheetModal").classList.add("open");
+
+  // Stocke temporairement l’index/colonne si tu veux modifier/supprimer depuis la fiche ensuite
+  localStorage.setItem("sheet-target", JSON.stringify({colId, index}));
+}
+
+function closeSheet() {
+  document.getElementById("sheetModal").classList.remove("open");
+}
+
+function closeSheet() {
+  document.getElementById("sheetModal").classList.remove("open");
+}
+
+function renderBoard() {
+  const board = document.getElementById("kanban-board");
+  board.innerHTML = "";
+
+  boardData.columns.forEach((col, colIndex) => {
+    const colDiv = document.createElement("div");
+    colDiv.className = "column";
+
+    colDiv.innerHTML = `
+      <div class="column-head">
+        <h3>${col.name}</h3>
+      </div>
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+
+    board.appendChild(colDiv);
+
+    const cardsDiv = document.getElementById(`cards-${col.id}`);
+
+    col.cards.forEach((client, index) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.draggable = true;
+      card.style.cursor = "pointer";
+
+      // Affiche uniquement nom + prénom
+      card.innerHTML = `
+        <div class="card-name">${client.lastname} ${client.firstname}</div>
+      `;
+
+      // Au clic → ouvre fiche
+      card.onclick = () => openSheet(client, col.id, index);
+
+      // Drag & drop entre colonnes
+      card.ondragstart = e => {
+        e.dataTransfer.setData("clientId", client.id);
+        e.dataTransfer.setData("fromCol", colIndex);
+      };
+
+      cardsDiv.appendChild(card);
+    });
+
+    // Drop colonne
+    cardsDiv.ondragover = e => e.preventDefault();
+    cardsDiv.ondrop = e => {
+      const cardId = e.dataTransfer.getData("clientId");
+      const fromIndex = parseInt(e.dataTransfer.getData("fromCol"));
+      moveClient(cardId, fromIndex, col.id);
+    };
+  });
+}
+
+function moveClient(clientId, fromColIndex, toColId) {
+  const fromCol = boardData.columns[fromColIndex];
+  const toCol = boardData.columns.find(c => c.id === toColId);
+  if (!fromCol || !toCol) return;
+
+  const client = fromCol.cards.find(c => c.id == clientId);
+  if (!client) return;
+
+  fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
+  toCol.cards.push(client);
+
+  saveBoard();
+  renderBoard();
+}
+
+// Au chargement
+document.addEventListener("DOMContentLoaded", renderBoard);
+renderBoard();
+
+</script>
+
 </body>
 </html>
