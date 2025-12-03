@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DTN SmartOps</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Style rapide pour la fiche client */
+    .client-sheet {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 15px;
+    }
+    .client-sheet strong {
+      color: #222;
+    }
+    .modal-card.client {
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+  </style>
 </head>
 
 <body>
@@ -24,7 +40,7 @@
 
 <main id="kanban-board" class="board-container"></main>
 
-<!-- MODALE NOUVEAU CLIENT -->
+<!-- Modal nouveau client -->
 <div id="clientModal" class="modal">
   <div class="modal-card">
     <h3>Nouveau client</h3>
@@ -36,12 +52,12 @@
       <input id="email" type="email" placeholder="Adresse mail" />
       <textarea id="comment" placeholder="Commentaire…" rows="3"></textarea>
       <select id="work">
-        <option>Fibre optique / Télécom</option>
-        <option>Électricité générale</option>
-        <option>IRVE / Borne de recharge</option>
+        <option>Fibre / Télécom</option>
+        <option>Électricité</option>
+        <option>IRVE</option>
         <option>Photovoltaïque</option>
-        <option>Terrassement / Génie civil</option>
-        <option>Détection réseaux / regard</option>
+        <option>Terrassement</option>
+        <option>Détection réseaux</option>
         <option>Autres</option>
       </select>
 
@@ -53,10 +69,18 @@
   </div>
 </div>
 
+<!-- Modal fiche client -->
+<div id="sheetModal" class="modal">
+  <div id="sheetCard" class="modal-card client client-card">
+    <h3>Fiche Client</h3>
+    <div id="clientSheet" class="client-sheet"></div>
+    <div style="display:flex;justify-content:end;margin-top:12px">
+      <button onclick="closeSheet()" class="btn close-btn">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ============================
-   DONNÉES ET INIT
-============================== */
 
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
@@ -76,10 +100,6 @@ function saveBoard() {
   alert("Board sauvegardé ✔");
 }
 
-/* ===============================
-   MODALE (OUVRIR / FERMER)
-================================ */
-
 function openClientModal() {
   document.getElementById("clientModal").classList.add("open");
 }
@@ -87,10 +107,6 @@ function openClientModal() {
 function closeClientModal() {
   document.getElementById("clientModal").classList.remove("open");
 }
-
-/* ===============================
-   AJOUT CLIENT (Modal)
-================================ */
 
 function createClient(e) {
   e.preventDefault();
@@ -107,60 +123,90 @@ function createClient(e) {
   };
 
   boardData.columns[0].cards.push(newClient);
-
   saveBoard();
-  renderBoard();
   closeClientModal();
+  renderBoard();
   e.target.reset();
 }
 
-/* ===============================
-   AJOUT RAPIDE CLIENT (sans modal)
-================================ */
+function openSheet(client, colId, index) {
+  // Affiche les infos dans la fiche
+  document.getElementById("clientSheet").innerHTML = `
+    <p><strong>Nom :</strong> ${client.lastname}</p>
+    <p><strong>Prénom :</strong> ${client.firstname}</p>
+    <p><strong>Téléphone :</strong> ${client.tel || "-"}</p>
+    <p><strong>Adresse :</strong> ${client.address || "-"}</p>
+    <p><strong>Email :</strong> ${client.email || "-"}</p>
+    <p><strong>Travail :</strong> ${client.work || "-"}</p>
+    <p><strong>Commentaire :</strong><br>${client.comment || "-"}</p>
+  `;
 
-function addClientToColumn() {
-  const col = boardData.columns[0];
-  const lastname = prompt("Nom du client ?");
-  const firstname = prompt("Prénom ?");
-  if (!lastname || !firstname) return;
+  // Affiche la modale
+  document.getElementById("sheetModal").classList.add("open");
 
-  col.cards.push({
-    id: Date.now().toString(),
-    lastname,
-    firstname,
-    tel: "",
-    address: "",
-    email: "",
-    work: "Autres",
-    comment: ""
+  // Stocke temporairement l’index/colonne si tu veux modifier/supprimer depuis la fiche ensuite
+  localStorage.setItem("sheet-target", JSON.stringify({colId, index}));
+}
+
+function closeSheet() {
+  document.getElementById("sheetModal").classList.remove("open");
+}
+
+function closeSheet() {
+  document.getElementById("sheetModal").classList.remove("open");
+}
+
+function renderBoard() {
+  const board = document.getElementById("kanban-board");
+  board.innerHTML = "";
+
+  boardData.columns.forEach((col, colIndex) => {
+    const colDiv = document.createElement("div");
+    colDiv.className = "column";
+
+    colDiv.innerHTML = `
+      <div class="column-head">
+        <h3>${col.name}</h3>
+      </div>
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+
+    board.appendChild(colDiv);
+
+    const cardsDiv = document.getElementById(`cards-${col.id}`);
+
+    col.cards.forEach((client, index) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.draggable = true;
+      card.style.cursor = "pointer";
+
+      // Affiche uniquement nom + prénom
+      card.innerHTML = `
+        <div class="card-name">${client.lastname} ${client.firstname}</div>
+      `;
+
+      // Au clic → ouvre fiche
+      card.onclick = () => openSheet(client, col.id, index);
+
+      // Drag & drop entre colonnes
+      card.ondragstart = e => {
+        e.dataTransfer.setData("clientId", client.id);
+        e.dataTransfer.setData("fromCol", colIndex);
+      };
+
+      cardsDiv.appendChild(card);
+    });
+
+    // Drop colonne
+    cardsDiv.ondragover = e => e.preventDefault();
+    cardsDiv.ondrop = e => {
+      const cardId = e.dataTransfer.getData("clientId");
+      const fromIndex = parseInt(e.dataTransfer.getData("fromCol"));
+      moveClient(cardId, fromIndex, col.id);
+    };
   });
-
-  saveBoard();
-  renderBoard();
 }
-
-/* ===============================
-   AJOUT COLONNES
-================================ */
-
-function addColumn() {
-  const columnName = prompt("Nom de la nouvelle colonne ?");
-  if (!columnName) return;
-
-  const newColumn = {
-    id: "col-" + Date.now(),
-    name: columnName,
-    cards: []
-  };
-
-  boardData.columns.push(newColumn);
-  saveBoard();
-  renderBoard();
-}
-
-/* ===============================
-   DRAG & DROP → Déplacer cartes
-================================ */
 
 function moveClient(clientId, fromColIndex, toColId) {
   const fromCol = boardData.columns[fromColIndex];
@@ -172,121 +218,15 @@ function moveClient(clientId, fromColIndex, toColId) {
 
   fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
   toCol.cards.push(client);
+
   saveBoard();
   renderBoard();
 }
 
-/* ===============================
-   AFFICHAGE DU BOARD
-================================ */
-
-function renderBoard() {
-  const board = document.getElementById("kanban-board");
-  if (!board) return console.error("Kanban introuvable ❌");
-
-  board.innerHTML = "";
-
-  boardData.columns.forEach((col, colIndex) => {
-    const colDiv = document.createElement("div");
-    colDiv.className = "column";
-
-    colDiv.innerHTML = `
-      <div class="column-head">
-        <h3>${col.name}</h3>
-        <button class="icon-btn column-menu-btn" onclick="toggleMenu('menu-${col.id}', event)">⋮</button>
-        <div class="menu-list" id="menu-${col.id}">
-          <button onclick="renameColumn('${col.id}')">Renommer colonne</button>
-          <button onclick="deleteColumn('${col.id}')">Supprimer colonne</button>
-        </div>
-      </div>
-      <div class="cards" id="cards-${col.id}"></div>
-    `;
-
-    board.appendChild(colDiv);
-
-    const cardsDiv = document.getElementById(`cards-${col.id}`);
-    if (!cardsDiv) return;
-
-    cardsDiv.ondragover = ev => ev.preventDefault();
-    cardsDiv.ondrop = ev => {
-      const cardId = ev.dataTransfer.getData("clientId");
-      const fromIndex = parseInt(ev.dataTransfer.getData("fromCol"));
-      moveClient(cardId, fromIndex, col.id);
-    };
-
-    col.cards.forEach(client => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.draggable = true;
-
-      card.innerHTML = `
-        <div class="card-name">${client.lastname} ${client.firstname}</div>
-        <div class="card-meta">
-          ${client.tel ? `<span class="chip">📞 ${client.tel}</span>` : ""}
-          ${client.email ? `<span class="chip">📧 ${client.email}</span>` : ""}
-          <span class="chip">🛠 ${client.work}</span>
-        </div>
-        ${client.comment ? `<p class="card-comment">${client.comment}</p>` : ""}
-        <button class="icon-btn" onclick="toggleMenu('menu-card-${client.id}', event)">⋮</button>
-        <div class="menu-list" id="menu-card-${client.id}">
-          <button onclick="editCard('${col.id}','${client.id}')">Modifier commentaire</button>
-          <button onclick="deleteClient('${col.id}','${client.id}')">Supprimer client</button>
-        </div>
-      `;
-
-      card.ondragstart = e => {
-        e.dataTransfer.setData("clientId", client.id);
-        e.dataTransfer.setData("fromCol", colIndex);
-      };
-
-      cardsDiv.appendChild(card);
-    });
-  });
-}
-
-/* ===============================
-   FONCTIONS COLONNES
-================================ */
-
-function renameColumn(colId) {
-  const col = boardData.columns.find(c => c.id === colId);
-  const newName = prompt("Nouveau nom :", col.name);
-  if (!newName) return;
-  col.name = newName;
-  saveBoard();
-  renderBoard();
-}
-
-function deleteColumn(colId) {
-  if (!confirm("Supprimer cette colonne ?")) return;
-  boardData.columns = boardData.columns.filter(c => c.id !== colId);
-  saveBoard();
-  renderBoard();
-}
-
-function editCard(colId, clientId) {
-  const col = boardData.columns.find(c => c.id === colId);
-  const client = col.cards.find(c => c.id == clientId);
-  const newComment = prompt("Nouveau commentaire :", client.comment || "");
-  if (newComment === null) return;
-  client.comment = newComment;
-  saveBoard();
-  renderBoard();
-}
-
-/* ---------- Menus UI ---------- */
-function toggleMenu(id, event) {
-  event.stopPropagation();
-  document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-  document.getElementById(id)?.classList.toggle("open");
-}
-
-document.body.addEventListener("click", () => {
-  document.querySelectorAll(".menu-list.open").forEach(m => m.classList.remove("open"));
-});
-
-// Initialisation
+// Au chargement
+document.addEventListener("DOMContentLoaded", renderBoard);
 renderBoard();
+
 </script>
 
 </body>
