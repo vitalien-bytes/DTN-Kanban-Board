@@ -1,15 +1,54 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"/>
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>DTN SmartOps</title>
 <link rel="stylesheet" href="style.css"/>
 <style>
-.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; }
+/* Style type Trello */
+.board-container {
+  display:flex;
+  gap:18px;
+  padding:16px;
+  overflow-x:auto;
+  white-space:nowrap;
+}
+.column {
+  background:#ebecf0;
+  width:272px;
+  border-radius:12px;
+  padding:10px;
+  flex-shrink:0;
+  display:inline-block;
+  vertical-align:top;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+.column-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+.cards {
+  min-height:20px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.card {
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  font-size:15px;
+  font-weight:600;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
+  cursor:pointer;
+}
+.card:hover { background:#f9f9f9; }
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); justify-content:center; align-items:center; }
 .modal.open { display:flex; }
-.modal-card.client { background:white; padding:20px; border-radius:12px; width:340px; max-height:80vh; overflow-y:auto; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
-.client-sheet { display:flex; flex-direction:column; gap:6px; font-size:15px; }
+.modal-card.client { background:white; padding:18px; border-radius:12px; width:340px; max-height:80vh; overflow-y:auto; box-shadow:0 2px 10px rgba(0,0,0,0.4); }
 </style>
 </head>
 
@@ -17,108 +56,94 @@
 
 <header class="topbar">
 <div class="brand">
-  <img src="logo.png" alt="Logo" class="logo"/>
-  <span><b>DTN</b> SmartOps</span>
+  <img src="logo.png" class="logo"/>
+  <span class="brand-text"><b>DTN</b> SmartOps</span>
 </div>
 
 <div class="actions">
-  <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
-  <button onclick="addColumn()" class="btn btn-accent">🆕 Nouvelle colonne</button>
-  <button onclick="saveBoard()" class="btn btn-accent">💾 Sauvegarder</button>
+  <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau</button>
+  <button onclick="addColumn()" class="btn btn-accent">➕ Liste</button>
+  <button onclick="saveBoard()" class="btn btn-accent">💾</button>
 </div>
 </header>
 
-<main id="kanban-board" class="board-container"></main>
+<main id="kanban-board" class="board-container board"></main>
 
 <!-- MODAL AJOUT CLIENT -->
 <div id="clientModal" class="modal">
-<div class="modal-card">
-  <h3>Nouveau client</h3>
-  <form onsubmit="createClient(event)">
-    <input id="lastname" placeholder="Nom" required/>
-    <input id="firstname" placeholder="Prénom" required/>
-    <input id="tel" placeholder="Téléphone"/>
-    <input id="address" placeholder="Adresse"/>
-    <input id="email" type="email" placeholder="Email"/>
-    <textarea id="comment" placeholder="Commentaire" rows="3"></textarea>
-    <select id="work">
-      <option>Fibre / Télécom</option>
-      <option>Électricité</option>
-      <option>IRVE</option>
-      <option>Photovoltaïque</option>
-      <option>Terrassement</option>
-      <option>Détection réseaux</option>
-      <option>Autres</option>
-    </select>
-    <div class="modal-actions">
-      <button type="button" onclick="closeClientModal()" class="btn close-btn">Annuler</button>
-      <button type="submit" class="btn btn-primary">Créer</button>
-    </div>
-  </form>
-</div>
+  <div class="modal-card">
+    <h3>Ajouter un client</h3>
+    <form onsubmit="createClient(event)">
+      <input id="lastname" placeholder="Nom" required/>
+      <input id="firstname" placeholder="Prénom" required/>
+      <textarea id="comment" placeholder="Note…" rows="3"></textarea>
+      <div class="modal-actions">
+        <button type="button" onclick="closeClientModal()" class="btn close-btn">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- MODAL FICHE CLIENT -->
 <div id="sheetModal" class="modal">
-<div class="modal-card client">
-  <h3>Fiche Client</h3>
-  <div id="clientSheet" class="client-sheet client-sheet"></div>
-  <div style="display:flex;gap:10px;justify-content:end;margin-top:10px">
-    <button onclick="editFromSheet()" class="btn btn-primary">✏ Modifier</button>
-    <button onclick="archiveFromSheet()" class="btn btn-accent">📥 Archiver</button>
+  <div class="modal-card client">
+    <h3>Fiche client</h3>
+    <div id="clientSheet" class="client-sheet"></div>
+    <div style="display:flex;gap:10px;justify-content:end;margin-top:10px">
+      <button onclick="editFromSheet()" class="btn btn-primary">✏ Modifier</button>
+      <button onclick="archiveFromSheet()" class="btn btn-accent">📥 Archiver</button>
+    </div>
+    <button onclick="closeSheet()" class="btn close-btn" style="margin-top:12px;width:100%">Fermer</button>
   </div>
-  <button onclick="closeSheet()" class="btn close-btn" style="margin-top:12px;width:100%">Fermer</button>
-</div>
 </div>
 
 <script>
-
-/* ======== DONNEES ET INIT ======== */
+/* ======== Board data ======== */
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
 if (!boardData) {
   boardData = {
     columns: [
-      { id:"col-1", name:"À faire", cards:[] },
-      { id:"col-2", name:"En cours", cards:[] },
-      { id:"col-3", name:"Terminé", cards:[] }
-    ]
+      { id:"list-1", name:"À faire", cards:[] },
+      { id:"list-2", name:"En cours", cards:[] },
+      { id:"list-3", name:"Terminé", cards:[] }
+    ],
+    archived: []
   };
-  saveBoard();
+  localStorage.setItem("boardData", JSON.stringify(boardData));
 }
 
-/* ======== SAUVEGARDE ======== */
+/* ======== Save ======== */
 function saveBoard() {
   localStorage.setItem("boardData", JSON.stringify(boardData));
 }
 
-/* ======== CREATION COLONNE ======== */
+/* ======== Add Column ======== */
 function addColumn() {
   const name = prompt("Nom de la colonne ?");
   if (!name) return;
-  boardData.columns.push({ id:"col-"+Date.now(), name, cards:[] });
+  boardData.columns.push({ id:"list-"+Date.now(), name, cards:[] });
   saveBoard();
   renderBoard();
 }
 
-/* ======== MODALE CLIENT ======== */
+/* ======== Modal add client ======== */
 function openClientModal() {
   document.getElementById("clientModal").classList.add("open");
 }
 function closeClientModal() {
   document.getElementById("clientModal").classList.remove("open");
 }
+
+/* ======== Create client ======== */
 function createClient(e) {
   e.preventDefault();
   const client = {
     id:Date.now().toString(),
-    lastname:lastname.value.trim(),
-    firstname:firstname.value.trim(),
-    tel:tel.value.trim(),
-    address:address.value.trim(),
-    email:email.value.trim(),
-    work:work.value,
-    comment:comment.value.trim()
+    lastname:document.getElementById("lastname").value.trim(),
+    firstname:document.getElementById("firstname").value.trim(),
+    comment:document.getElementById("comment").value.trim()
   };
   boardData.columns[0].cards.push(client);
   saveBoard();
@@ -127,119 +152,112 @@ function createClient(e) {
   e.target.reset();
 }
 
-/* ======== FICHE CLIENT ======== */
+/* ======== Render board ======== */
+function renderBoard() {
+  const board = document.getElementById("kanban-board");
+  if (!board) return;
+  board.innerHTML = "";
+
+  // rend colonnes
+  boardData.columns.forEach((col, colIndex) => {
+    const colDiv = document.createElement("div");
+    colDiv.className = "column";
+    colDiv.innerHTML = `
+      <div class="column-head">
+        <span>${col.name}</span>
+        <button class="icon-btn" onclick="renameColumn('${col.id}', event)">⋮</button>
+      </div>
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+    board.appendChild(colDiv);
+
+    const cardsDiv = document.getElementById(`cards-${col.id}`);
+    cardsDiv.ondragover = ev => ev.preventDefault();
+    cardsDiv.ondrop = ev => {
+      const cardId = ev.dataTransfer.getData("clientId");
+      const fromCol = parseInt(ev.dataTransfer.getData("fromCol"));
+      moveClient(cardId, fromCol, col.id);
+    };
+
+    // rend cartes nom/prénom uniquement
+    col.cards.forEach((client) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.draggable = true;
+      card.innerText = client.lastname + " " + client.firstname;
+      card.onclick = () => openSheet(client, col.id, col.cards.indexOf(client));
+
+      card.ondragstart = e => {
+        e.dataTransfer.setData("clientId", client.id);
+        e.dataTransfer.setData("fromCol", colIndex);
+      };
+
+      cardsDiv.appendChild(card);
+    });
+  });
+
+  // affiche col "Archives" si nécessaire
+  if (!boardData.columns.find(c => c.id === "archives")) {
+    const archiveCol = { id:"archives", name:"Archives", cards:[] };
+    boardData.columns.push(archiveCol);
+  }
+}
+
+// open fiche client
 function openSheet(client, colId, index) {
   document.getElementById("clientSheet").innerHTML = `
     <p><strong>Nom :</strong> ${client.lastname}</p>
     <p><strong>Prénom :</strong> ${client.firstname}</p>
-    <p><strong>Téléphone :</strong> ${client.tel || "-"}</p>
-    <p><strong>Adresse :</strong> ${client.address || "-"}</p>
-    <p><strong>Email :</strong> ${client.email || "-"}</p>
-    <p><strong>Service :</strong> ${client.work || "-"}</p>
     <p><strong>Commentaire :</strong><br>${client.comment || "-"}</p>
   `;
   document.getElementById("sheetModal").classList.add("open");
   localStorage.setItem("sheet-target", JSON.stringify({colId,index,clientId:client.id}));
 }
+
 function closeSheet() {
   document.getElementById("sheetModal").classList.remove("open");
 }
 
-/* ======== EDITION DEPUIS FICHE ======== */
-function editFromSheet() {
-  const {colId,index} = JSON.parse(localStorage.getItem("sheet-target"));
+function modifyFromSheet(colId, index) {
   const col = boardData.columns.find(c => c.id === colId);
+  if(!col) return;
   const client = col.cards[index];
   const newComment = prompt("Modifier commentaire :", client.comment || "");
-  if (newComment===null) return;
+  if(newComment===null) return;
   client.comment = newComment.trim();
   saveBoard();
   renderBoard();
-  openSheet(client, colId, index);
 }
 
-/* ======== ARCHIVE AU LIEU D’EFFACER ======== */
+// archive client
 function archiveFromSheet() {
   const {colId,index,clientId} = JSON.parse(localStorage.getItem("sheet-target"));
   const col = boardData.columns.find(c => c.id === colId);
+  if(!col) return;
   const client = col.cards.find(c => c.id == clientId);
-  if (!client) return;
-
-  // Crée colonne "Archives" si elle n'existe pas
-  let archiveCol = boardData.columns.find(c => c.name === "Archives");
-  if (!archiveCol) {
-    archiveCol = { id:"col-archive", name:"Archives", cards:[] };
-    boardData.columns.push(archiveCol);
-  }
-
-  // Déplace client vers Archives
+  if(!client) return;
   col.cards = col.cards.filter(c => c.id != clientId);
+  const archiveCol = boardData.columns.find(c => c.id === "archives");
   archiveCol.cards.push(client);
-
   saveBoard();
   renderBoard();
   closeSheet();
-  alert("Client archivé ✔");
 }
 
-/* ======== DEPLACEMENT DRAG & DROP ======== */
+// mouve client entre col
 function moveClient(clientId, fromColIndex, toColId) {
   const fromCol = boardData.columns[fromColIndex];
   const toCol = boardData.columns.find(c => c.id === toColId);
-  if(!fromCol || !toCol) return;
+  if (!fromCol || !toCol) return;
   const client = fromCol.cards.find(c => c.id == clientId);
-  if(!client) return;
+  if (!client) return;
   fromCol.cards = fromCol.cards.filter(c => c.id != clientId);
   toCol.cards.push(client);
   saveBoard();
   renderBoard();
 }
 
-/* ======== RENDU DES COLONNES ======== */
-function renderBoard() {
-  const board = document.getElementById("kanban-board");
-  board.innerHTML = "";
-
-  boardData.columns.forEach((col, colIndex) => {
-    const colDiv = document.createElement("div");
-    colDiv.className="column";
-
-    colDiv.innerHTML = `
-      <div class="column-head">
-        <h3>${col.name}</h3>
-        <button class="icon-btn" onclick="toggleMenu('menu-${col.id}', event)">⋮</button>
-        <div class="menu-list" id="menu-${col.id}">
-          <button onclick="renameColumn('${col.id}')">Renommer colonne</button>
-        </div>
-      </div>
-      <div class="cards" id="cards-${col.id}"></div>
-    `;
-
-    board.appendChild(colDiv);
-    const cardsDiv = document.getElementById(`cards-${col.id}`);
-
-    cardsDiv.ondragover = e => e.preventDefault();
-    cardsDiv.onddrop = e => {
-      const cardId = e.dataTransfer.getData("clientId");
-      const fromIndex = parseInt(e.dataTransfer.getData("fromCol"));
-      moveClient(cardId, fromIndex, col.id);
-    };
-
-    col.cards.forEach(client => {
-      const card = document.createElement("div");
-      card.className="card";
-      card.draggable=true;
-      card.innerHTML=`<div class="card-name">${client.lastname} ${client.firstname}</div>`;
-      card.onclick=()=>openSheet(client,col.id,index);
-      card.ondragstart=e=>{
-        e.dataTransfer.setData("clientId",client.id);
-        e.dataTransfer.setData("fromCol",colIndex);
-      };
-      cardsDiv.appendChild(card);
-    });
-  });
-}
-
+// init
 document.addEventListener("DOMContentLoaded", renderBoard);
 renderBoard();
 </script>
