@@ -78,7 +78,6 @@ body {
 }
 
 .card:hover { background:#f8f8f8; }
-
 .card-type {
   width:6px;
   align-self:stretch;
@@ -356,9 +355,8 @@ function renderBoard() {
 
     board.appendChild(colDiv);
 
+    /** ZONE DROP */
     const cardsDiv = colDiv.querySelector(".cards");
-
-    /** Déplacements */
     cardsDiv.ondragover = e => e.preventDefault();
     cardsDiv.ondrop = e => {
       const cardId = e.dataTransfer.getData("cid");
@@ -366,16 +364,16 @@ function renderBoard() {
       moveClient(cardId, col.id, fromColId);
     };
 
-    /** Cartes clients */
+    /** CARTES CLIENTS */
     col.cards.forEach((client, index) => {
 
-      const typeColor = colorMap[client.work] || "#777";
       let status = "";
-
       if (client.intervention && client.intervention.date) {
         if (client.intervention.date === today) status = " today";
         else if (client.intervention.date < today) status = " overdue";
       }
+
+      const typeColor = colorMap[client.work] || "#777";
 
       const card = document.createElement("div");
       card.className = "card" + status;
@@ -386,13 +384,31 @@ function renderBoard() {
         <div>${client.lastname} ${client.firstname}</div>
       `;
 
-      /** ⭐ Correction du clic */
-      card.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openSheet(client, col.id, index);
+      /** 🔥 PATCH ANTI-DRAG → CLIC 100% FIABLE */
+      let dragStartX = 0, dragStartY = 0, isDragging = false;
+
+      card.addEventListener("mousedown", (e) => {
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        isDragging = false;
       });
 
+      card.addEventListener("mousemove", (e) => {
+        if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
+          isDragging = true;
+        }
+      });
+
+      card.addEventListener("mouseup", (e) => {
+        if (!isDragging) {
+          e.stopPropagation();
+          openSheet(client, col.id, index);
+        }
+      });
+
+      /** DRAG */
       card.ondragstart = e => {
+        isDragging = true;
         e.dataTransfer.setData("cid", client.id);
         e.dataTransfer.setData("fromCol", col.id);
       };
@@ -481,7 +497,7 @@ function editClient() {
 
 
 /* =====================================================
-   ARCHIVAGE
+   ARCHIVAGE / RESTAURATION
 ===================================================== */
 
 function archiveClient() {
@@ -522,7 +538,7 @@ function restoreClient() {
 
 
 /* =====================================================
-   TIMELINE
+   TIMELINE HISTORIQUE
 ===================================================== */
 
 function openHistoryModal() {
