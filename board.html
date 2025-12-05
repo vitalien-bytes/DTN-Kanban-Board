@@ -57,17 +57,10 @@ body {
   padding:6px;
   z-index:50;
 }
-
 .menu-list.open { display:block; }
-
 .menu-list button {
-  background:none;
-  border:none;
-  padding:6px 10px;
-  width:100%;
-  text-align:left;
-  cursor:pointer;
-  font-size:14px;
+  background:none; border:none; padding:6px 10px;
+  width:100%; text-align:left; cursor:pointer; font-size:14px;
 }
 
 /* CARTES CLIENT */
@@ -113,46 +106,23 @@ body {
 }
 
 .modal-card label {
-  font-size:13px;
-  font-weight:600;
-  display:block;
-  margin-top:6px;
+  font-size:13px; font-weight:600; display:block; margin-top:8px;
 }
 
 .modal-card input,
 .modal-card select,
 .modal-card textarea {
-  width:100%;
-  padding:6px 8px;
+  width:100%; padding:6px 8px;
   margin-top:3px;
   border-radius:6px;
-  border:1px solid #ccc;
-  font-size:14px;
+  border:1px solid #ccc; font-size:14px;
 }
 
 /* TIMELINE */
-.timeline-item {
-  display:flex;
-  gap:12px;
-  margin-bottom:16px;
-}
-.timeline-icon {
-  font-size:20px;
-  width:30px;
-  text-align:center;
-}
-.timeline-content {
-  background:#f5f5f5;
-  padding:10px 12px;
-  border-radius:6px;
-  flex:1;
-  font-size:14px;
-}
-.timeline-date {
-  font-size:12px;
-  color:#777;
-  margin-top:4px;
-}
+.timeline-item { display:flex; gap:12px; margin-bottom:16px; }
+.timeline-icon { font-size:20px; width:30px; text-align:center; }
+.timeline-content { background:#f5f5f5; padding:10px 12px; border-radius:6px; flex:1; }
+.timeline-date { font-size:12px; color:#777; margin-top:4px; }
 </style>
 </head>
 
@@ -175,7 +145,7 @@ body {
     <button onclick="addColumn()" class="btn btn-accent">➕ Colonne</button>
     <button onclick="saveBoard()" class="btn btn-accent">💾</button>
 
-    <!-- ⭐ Bouton vers le planning -->
+    <!-- ⭐ Bouton Planning -->
     <button onclick="window.location.href='planning.html'" class="btn btn-accent">📅 Planning</button>
   </div>
 
@@ -189,12 +159,8 @@ body {
     <h3>Nouveau client</h3>
 
     <form onsubmit="createClient(event)">
-      <label>Nom
-        <input id="lastname" required/>
-      </label>
-      <label>Prénom
-        <input id="firstname" required/>
-      </label>
+      <label>Nom <input id="lastname" required/></label>
+      <label>Prénom <input id="firstname" required/></label>
       <label>Téléphone <input id="tel"/></label>
       <label>Adresse <input id="address"/></label>
       <label>Email <input id="email"/></label>
@@ -255,20 +221,16 @@ body {
     <label>Date <input type="date" id="sheet-int-date"/></label>
     <label>Heure <input type="time" id="sheet-int-time"/></label>
     <label>Technicien <input id="sheet-int-tech"/></label>
-    <label>Note intervention
-      <textarea id="sheet-int-note" rows="2"></textarea>
-    </label>
+    <label>Note <textarea id="sheet-int-note" rows="2"></textarea></label>
 
     <button onclick="openHistoryModal()" class="btn btn-primary" style="margin-top:10px;width:100%;">
       📜 Historique complet
     </button>
 
-    <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
+    <div style="display:flex;gap:10px;margin-top:15px;">
       <button onclick="editClient()" class="btn btn-primary" style="flex:1">💾 Enregistrer</button>
       <button onclick="archiveClient()" class="btn btn-accent" style="flex:1">📥 Archiver</button>
-      <button onclick="restoreClient()" class="btn btn-primary" id="restoreBtn" style="flex:1;display:none;">
-        ↩ Restaurer
-      </button>
+      <button onclick="restoreClient()" id="restoreBtn" class="btn btn-primary" style="flex:1;display:none;">↩ Restaurer</button>
     </div>
 
     <button onclick="closeSheet()" class="btn" style="margin-top:12px;width:100%">Fermer</button>
@@ -279,7 +241,7 @@ body {
 <div id="historyModal" class="modal">
   <div class="modal-card" style="width:420px;">
     <h3>Historique complet</h3>
-    <div id="historyTimeline" style="margin-top:10px;"></div>
+    <div id="historyTimeline"></div>
     <button onclick="closeHistoryModal()" class="btn" style="margin-top:15px;width:100%;">Fermer</button>
   </div>
 </div>
@@ -314,14 +276,14 @@ function getTodayYMD() {
 
 
 /* =====================================================
-   AJOUT / MODIFICATION CLIENTS
+   AJOUT CLIENT
 ===================================================== */
 
 function openClientModal(colId=null) {
   window.newClientTargetColumn = colId;
-  document.getElementById("clientModal").classList.add("open");
+  clientModal.classList.add("open");
 }
-function closeClientModal() { document.getElementById("clientModal").classList.remove("open"); }
+function closeClientModal() { clientModal.classList.remove("open"); }
 
 function createClient(e) {
   e.preventDefault();
@@ -351,7 +313,7 @@ function createClient(e) {
 
 
 /* =====================================================
-   AFFICHAGE DU BOARD
+   AFFICHAGE BOARD
 ===================================================== */
 
 const colorMap = {
@@ -396,6 +358,7 @@ function renderBoard() {
 
     const cardsDiv = colDiv.querySelector(".cards");
 
+    /** Déplacements */
     cardsDiv.ondragover = e => e.preventDefault();
     cardsDiv.ondrop = e => {
       const cardId = e.dataTransfer.getData("cid");
@@ -403,10 +366,12 @@ function renderBoard() {
       moveClient(cardId, col.id, fromColId);
     };
 
+    /** Cartes clients */
     col.cards.forEach((client, index) => {
 
       const typeColor = colorMap[client.work] || "#777";
       let status = "";
+
       if (client.intervention && client.intervention.date) {
         if (client.intervention.date === today) status = " today";
         else if (client.intervention.date < today) status = " overdue";
@@ -415,12 +380,17 @@ function renderBoard() {
       const card = document.createElement("div");
       card.className = "card" + status;
       card.draggable = true;
+
       card.innerHTML = `
         <div class="card-type" style="background:${typeColor}"></div>
         <div>${client.lastname} ${client.firstname}</div>
       `;
 
-      card.onclick = () => openSheet(client, col.id, index);
+      /** ⭐ Correction du clic */
+      card.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openSheet(client, col.id, index);
+      });
 
       card.ondragstart = e => {
         e.dataTransfer.setData("cid", client.id);
@@ -445,13 +415,13 @@ let currentClient = null;
 function openSheet(client, colId, index) {
   currentClient = { colId, index };
 
-  sheetLastname.value  = client.lastname;
+  sheetLastname.value = client.lastname;
   sheetFirstname.value = client.firstname;
-  sheetTel.value       = client.tel;
-  sheetAddress.value   = client.address;
-  sheetEmail.value     = client.email;
-  sheetWork.value      = client.work;
-  sheetComment.value   = client.comment;
+  sheetTel.value = client.tel;
+  sheetAddress.value = client.address;
+  sheetEmail.value = client.email;
+  sheetWork.value = client.work;
+  sheetComment.value = client.comment;
 
   const i = client.intervention || {};
   sheetIntDate.value = i.date || "";
@@ -460,26 +430,23 @@ function openSheet(client, colId, index) {
   sheetIntNote.value = i.note || "";
 
   restoreBtn.style.display = colId==="archives" ? "block" : "none";
-
-  document.getElementById("sheetModal").classList.add("open");
+  sheetModal.classList.add("open");
 }
 
-function closeSheet() {
-  document.getElementById("sheetModal").classList.remove("open");
-}
+function closeSheet() { sheetModal.classList.remove("open"); }
 
 function editClient() {
   const { colId, index } = currentClient;
-  const col = boardData.columns.find(c => c.id === colId);
+  const col = boardData.columns.find(c => c.id===colId);
   const c = col.cards[index];
 
-  c.lastname  = sheetLastname.value.trim();
+  c.lastname = sheetLastname.value.trim();
   c.firstname = sheetFirstname.value.trim();
-  c.tel       = sheetTel.value.trim();
-  c.address   = sheetAddress.value.trim();
-  c.email     = sheetEmail.value.trim();
-  c.work      = sheetWork.value;
-  c.comment   = sheetComment.value.trim();
+  c.tel = sheetTel.value.trim();
+  c.address = sheetAddress.value.trim();
+  c.email = sheetEmail.value.trim();
+  c.work = sheetWork.value;
+  c.comment = sheetComment.value.trim();
 
   const d = sheetIntDate.value;
   const t = sheetIntTime.value;
@@ -514,7 +481,7 @@ function editClient() {
 
 
 /* =====================================================
-   ARCHIVAGE / RESTAURATION
+   ARCHIVAGE
 ===================================================== */
 
 function archiveClient() {
@@ -555,21 +522,19 @@ function restoreClient() {
 
 
 /* =====================================================
-   TIMELINE HISTORIQUE
+   TIMELINE
 ===================================================== */
 
 function openHistoryModal() {
   const { colId, index } = currentClient;
-  const col = boardData.columns.find(c => c.id === colId);
+  const col = boardData.columns.find(c => c.id===colId);
   const c = col.cards[index];
 
-  historyTimeline.innerHTML = buildTimeline(c.history || []);
+  historyTimeline.innerHTML = buildTimeline(c.history);
   historyModal.classList.add("open");
 }
 
-function closeHistoryModal() {
-  historyModal.classList.remove("open");
-}
+function closeHistoryModal() { historyModal.classList.remove("open"); }
 
 function buildTimeline(history) {
   const icons = {
@@ -596,7 +561,7 @@ function buildTimeline(history) {
 
 
 /* =====================================================
-   COLONNES (3 POINTS)
+   COLONNES
 ===================================================== */
 
 function toggleMenu(id, event) {
@@ -630,7 +595,7 @@ function deleteColumn(colId) {
 
 
 /* =====================================================
-   DRAG & DROP
+   DRAG
 ===================================================== */
 
 function moveClient(clientId, toColId, fromColId) {
@@ -646,7 +611,6 @@ function moveClient(clientId, toColId, fromColId) {
   });
 
   toCol.cards.push(client);
-
   saveBoard();
   renderBoard();
 }
