@@ -22,6 +22,7 @@
   display:flex; gap:18px; padding:16px; overflow-x:auto;
 }
 
+/* Colonnes */
 .column {
   background:#ebecf0;
   width:270px;
@@ -38,6 +39,7 @@
   margin-bottom:6px;
 }
 
+/* Menus colonnes */
 .menu-btn {
   background:none; border:none; font-size:20px; cursor:pointer; padding:3px;
 }
@@ -66,17 +68,33 @@
   font-size:14px;
 }
 
+/* Cartes */
 .card {
+  display:flex;
+  align-items:center;
+  gap:8px;
   background:white;
   padding:10px;
   border-radius:8px;
   font-weight:600;
   cursor:pointer;
   box-shadow:0 1px 3px rgba(0,0,0,0.2);
+  margin-bottom:8px;
 }
 
 .card:hover { background:#f8f8f8; }
 
+.card-type {
+  width:6px;
+  align-self:stretch;
+  border-radius:4px;
+}
+
+/* Rappel interventions */
+.card.today { background:#fff7e0; }
+.card.overdue { background:#ffe5e5; }
+
+/* Modales */
 .modal {
   display:none; position:fixed; inset:0;
   background:rgba(0,0,0,0.5);
@@ -137,6 +155,8 @@
 </header>
 
 <main id="kanban-board" class="board-container"></main>
+
+
 <!-- =============== MODAL AJOUT CLIENT =============== -->
 <div id="clientModal" class="modal">
   <div class="modal-card">
@@ -218,7 +238,21 @@
       <textarea id="sheet-comment" rows="3"></textarea>
     </label>
 
-    <h4>Historique</h4>
+    <h4 style="margin-top:10px;">Intervention planifiée</h4>
+    <label>Date
+      <input type="date" id="sheet-int-date" />
+    </label>
+    <label>Heure
+      <input type="time" id="sheet-int-time" />
+    </label>
+    <label>Technicien
+      <input id="sheet-int-tech" placeholder="Nom du technicien"/>
+    </label>
+    <label>Note intervention
+      <textarea id="sheet-int-note" rows="2" placeholder="Détail (ex : RDV client, accès, etc.)"></textarea>
+    </label>
+
+    <h4 style="margin-top:10px;">Historique</h4>
     <div id="sheet-history" style="background:#f2f2f2;padding:8px;border-radius:6px;max-height:120px;overflow-y:auto;"></div>
 
     <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
@@ -256,6 +290,14 @@ function saveBoard() {
   localStorage.setItem("boardData", JSON.stringify(boardData));
 }
 
+/* Petite fonction pour comparer les dates YYYY-MM-DD */
+function getTodayYMD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
 
 /* =====================================================
    ➤ AJOUT COLONNE
@@ -304,6 +346,7 @@ function createClient(e) {
     email: document.getElementById("email").value.trim(),
     work: document.getElementById("work").value,
     comment: document.getElementById("comment").value.trim(),
+    intervention: null,
     history: [
       { action: "Création", date: new Date().toLocaleString() }
     ]
@@ -316,6 +359,8 @@ function createClient(e) {
   renderBoard();
   e.target.reset();
 }
+
+
 /* =====================================================
    ➤ AFFICHAGE BOARD
 ===================================================== */
@@ -323,6 +368,18 @@ function createClient(e) {
 function renderBoard() {
   const board = document.getElementById("kanban-board");
   board.innerHTML = "";
+
+  const colorMap = {
+    "Fibre / Télécom": "#007bff",
+    "Électricité": "#8e44ad",
+    "IRVE": "#27ae60",
+    "Photovoltaïque": "#f1c40f",
+    "Terrassement": "#e74c3c",
+    "Détection réseaux": "#e67e22",
+    "Autres": "#7f8c8d"
+  };
+
+  const today = getTodayYMD();
 
   boardData.columns.forEach((col) => {
 
@@ -358,10 +415,24 @@ function renderBoard() {
     };
 
     col.cards.forEach((client, index) => {
+      const typeColor = colorMap[client.work] || "#7f8c8d";
+
+      // statut intervention
+      let statusClass = "";
+      if (client.intervention && client.intervention.date) {
+        const d = client.intervention.date;
+        if (d === today) statusClass = " today";
+        else if (d < today) statusClass = " overdue";
+      }
+
       const card = document.createElement("div");
-      card.className = "card";
-      card.innerText = client.lastname + " " + client.firstname;
+      card.className = "card" + statusClass;
       card.draggable = true;
+
+      card.innerHTML = `
+        <div class="card-type" style="background:${typeColor}"></div>
+        <div>${client.lastname} ${client.firstname}</div>
+      `;
 
       card.onclick = () => openSheet(client, col.id, index);
 
@@ -378,7 +449,6 @@ function renderBoard() {
 }
 
 
-
 /* =====================================================
    ➤ FICHE CLIENT AMÉLIORÉE
 ===================================================== */
@@ -388,14 +458,22 @@ let currentClient = null;
 function openSheet(client, colId, index) {
   currentClient = { colId, index };
 
-  document.getElementById("sheet-lastname").value  = client.lastname;
-  document.getElementById("sheet-firstname").value = client.firstname;
-  document.getElementById("sheet-tel").value      = client.tel;
-  document.getElementById("sheet-address").value  = client.address;
-  document.getElementById("sheet-email").value    = client.email;
-  document.getElementById("sheet-work").value     = client.work;
-  document.getElementById("sheet-comment").value  = client.comment;
+  document.getElementById("sheet-lastname").value  = client.lastname || "";
+  document.getElementById("sheet-firstname").value = client.firstname || "";
+  document.getElementById("sheet-tel").value      = client.tel || "";
+  document.getElementById("sheet-address").value  = client.address || "";
+  document.getElementById("sheet-email").value    = client.email || "";
+  document.getElementById("sheet-work").value     = client.work || "Autres";
+  document.getElementById("sheet-comment").value  = client.comment || "";
 
+  // Intervention
+  const int = client.intervention || {};
+  document.getElementById("sheet-int-date").value = int.date || "";
+  document.getElementById("sheet-int-time").value = int.time || "";
+  document.getElementById("sheet-int-tech").value = int.tech || "";
+  document.getElementById("sheet-int-note").value = int.note || "";
+
+  // Historique
   document.getElementById("sheet-history").innerHTML =
     (client.history || [])
       .map(h => `<div>• <b>${h.action}</b> — ${h.date}</div>`)
@@ -413,7 +491,7 @@ function closeSheet() {
 
 
 /* =====================================================
-   ➤ ENREGISTRER MODIFS CLIENT
+   ➤ ENREGISTRER MODIFS CLIENT + INTERVENTION
 ===================================================== */
 
 function editClient() {
@@ -431,8 +509,34 @@ function editClient() {
   c.work      = document.getElementById("sheet-work").value;
   c.comment   = document.getElementById("sheet-comment").value.trim();
 
+  const newDate = document.getElementById("sheet-int-date").value;
+  const newTime = document.getElementById("sheet-int-time").value;
+  const newTech = document.getElementById("sheet-int-tech").value.trim();
+  const newNote = document.getElementById("sheet-int-note").value.trim();
+
+  const hadIntervention = !!(c.intervention && c.intervention.date);
+
+  if (newDate || newTime || newTech || newNote) {
+    c.intervention = {
+      date: newDate || "",
+      time: newTime || "",
+      tech: newTech || "",
+      note: newNote || ""
+    };
+    c.history.push({
+      action: hadIntervention ? "Intervention mise à jour" : "Intervention planifiée",
+      date: new Date().toLocaleString()
+    });
+  } else if (hadIntervention && !newDate && !newTime && !newTech && !newNote) {
+    c.intervention = null;
+    c.history.push({
+      action: "Intervention supprimée",
+      date: new Date().toLocaleString()
+    });
+  }
+
   c.history.push({
-    action: "Modification",
+    action: "Modification fiche",
     date: new Date().toLocaleString()
   });
 
@@ -447,9 +551,13 @@ function editClient() {
 ===================================================== */
 
 function archiveClient() {
+  if (!currentClient) return;
   const { colId, index } = currentClient;
 
-  if (colId === "archives") return alert("Déjà archivé.");
+  if (colId === "archives") {
+    alert("Client déjà archivé.");
+    return;
+  }
 
   const fromCol = boardData.columns.find(c => c.id === colId);
   const archiveCol = boardData.columns.find(c => c.id === "archives");
@@ -457,6 +565,7 @@ function archiveClient() {
   const client = fromCol.cards[index];
   fromCol.cards.splice(index, 1);
 
+  client.history = client.history || [];
   client.history.push({
     action: "Archivage",
     date: new Date().toLocaleString()
@@ -475,6 +584,7 @@ function archiveClient() {
 ===================================================== */
 
 function restoreClient() {
+  if (!currentClient) return;
   const { colId, index } = currentClient;
   if (colId !== "archives") return;
 
@@ -484,6 +594,7 @@ function restoreClient() {
   const client = archiveCol.cards[index];
   archiveCol.cards.splice(index, 1);
 
+  client.history = client.history || [];
   client.history.push({
     action: "Restauration",
     date: new Date().toLocaleString()
@@ -522,7 +633,10 @@ function renameColumn(colId) {
 }
 
 function deleteColumn(colId) {
-  if (colId === "archives") return alert("Impossible de supprimer Archives.");
+  if (colId === "archives") {
+    alert("Impossible de supprimer la colonne Archives.");
+    return;
+  }
   if (!confirm("Supprimer cette colonne ?")) return;
   boardData.columns = boardData.columns.filter(c => c.id !== colId);
   saveBoard();
@@ -537,10 +651,14 @@ function deleteColumn(colId) {
 function moveClient(clientId, toColId, fromColId) {
   const fromCol = boardData.columns.find(c => c.id === fromColId);
   const toCol   = boardData.columns.find(c => c.id === toColId);
+  if (!fromCol || !toCol) return;
 
   const client = fromCol.cards.find(c => c.id === clientId);
+  if (!client) return;
+
   fromCol.cards = fromCol.cards.filter(c => c.id !== clientId);
 
+  client.history = client.history || [];
   client.history.push({
     action: `Déplacement vers « ${toCol.name} »`,
     date: new Date().toLocaleString()
@@ -562,7 +680,7 @@ function filterCards() {
 
   document.querySelectorAll(".card").forEach(card => {
     const match = card.innerText.toLowerCase().includes(q);
-    card.style.display = match ? "block" : "none";
+    card.style.display = match ? "flex" : "none";
   });
 }
 
