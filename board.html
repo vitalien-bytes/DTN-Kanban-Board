@@ -57,8 +57,13 @@
 .menu-list.open { display:block; }
 
 .menu-list button {
-  background:none; border:none; padding:6px 10px;
-  width:100%; text-align:left; cursor:pointer; font-size:14px;
+  background:none;
+  border:none;
+  padding:6px 10px;
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+  font-size:14px;
 }
 
 .card {
@@ -96,6 +101,7 @@
   margin-top:6px;
 }
 .modal-card input,
+.modal-card select,
 .modal-card textarea {
   width:100%;
   box-sizing:border-box;
@@ -130,11 +136,7 @@
 
 </header>
 
-
-
 <main id="kanban-board" class="board-container"></main>
-
-
 <!-- =============== MODAL AJOUT CLIENT =============== -->
 <div id="clientModal" class="modal">
   <div class="modal-card">
@@ -155,6 +157,19 @@
       <label>Email
         <input id="email" placeholder="Email"/>
       </label>
+
+      <label>Type de chantier
+        <select id="work">
+          <option value="Fibre / Télécom">Fibre / Télécom</option>
+          <option value="Électricité">Électricité</option>
+          <option value="IRVE">IRVE</option>
+          <option value="Photovoltaïque">Photovoltaïque</option>
+          <option value="Terrassement">Terrassement</option>
+          <option value="Détection réseaux">Détection réseaux</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </label>
+
       <label>Commentaire
         <textarea id="comment" placeholder="Commentaire" rows="3"></textarea>
       </label>
@@ -188,9 +203,23 @@
     <label>Email
       <input id="sheet-email" />
     </label>
+    <label>Type de chantier
+      <select id="sheet-work">
+        <option value="Fibre / Télécom">Fibre / Télécom</option>
+        <option value="Électricité">Électricité</option>
+        <option value="IRVE">IRVE</option>
+        <option value="Photovoltaïque">Photovoltaïque</option>
+        <option value="Terrassement">Terrassement</option>
+        <option value="Détection réseaux">Détection réseaux</option>
+        <option value="Autres">Autres</option>
+      </select>
+    </label>
     <label>Commentaire
       <textarea id="sheet-comment" rows="3"></textarea>
     </label>
+
+    <h4>Historique</h4>
+    <div id="sheet-history" style="background:#f2f2f2;padding:8px;border-radius:6px;max-height:120px;overflow-y:auto;"></div>
 
     <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
       <button onclick="editClient()" class="btn btn-primary" style="flex:1">💾 Enregistrer</button>
@@ -201,7 +230,6 @@
     <button onclick="closeSheet()" class="btn close-btn" style="margin-top:12px;width:100%">Fermer</button>
   </div>
 </div>
-
 
 
 
@@ -274,7 +302,11 @@ function createClient(e) {
     tel: document.getElementById("tel").value.trim(),
     address: document.getElementById("address").value.trim(),
     email: document.getElementById("email").value.trim(),
-    comment: document.getElementById("comment").value.trim()
+    work: document.getElementById("work").value,
+    comment: document.getElementById("comment").value.trim(),
+    history: [
+      { action: "Création", date: new Date().toLocaleString() }
+    ]
   };
 
   col.cards.push(client);
@@ -284,9 +316,6 @@ function createClient(e) {
   renderBoard();
   e.target.reset();
 }
-
-
-
 /* =====================================================
    ➤ AFFICHAGE BOARD
 ===================================================== */
@@ -351,7 +380,7 @@ function renderBoard() {
 
 
 /* =====================================================
-   ➤ FICHE CLIENT (AMÉLIORÉE)
+   ➤ FICHE CLIENT AMÉLIORÉE
 ===================================================== */
 
 let currentClient = null;
@@ -359,14 +388,19 @@ let currentClient = null;
 function openSheet(client, colId, index) {
   currentClient = { colId, index };
 
-  document.getElementById("sheet-lastname").value  = client.lastname || "";
-  document.getElementById("sheet-firstname").value = client.firstname || "";
-  document.getElementById("sheet-tel").value      = client.tel || "";
-  document.getElementById("sheet-address").value  = client.address || "";
-  document.getElementById("sheet-email").value    = client.email || "";
-  document.getElementById("sheet-comment").value  = client.comment || "";
+  document.getElementById("sheet-lastname").value  = client.lastname;
+  document.getElementById("sheet-firstname").value = client.firstname;
+  document.getElementById("sheet-tel").value      = client.tel;
+  document.getElementById("sheet-address").value  = client.address;
+  document.getElementById("sheet-email").value    = client.email;
+  document.getElementById("sheet-work").value     = client.work;
+  document.getElementById("sheet-comment").value  = client.comment;
 
-  // bouton Restaurer visible seulement si Archives
+  document.getElementById("sheet-history").innerHTML =
+    (client.history || [])
+      .map(h => `<div>• <b>${h.action}</b> — ${h.date}</div>`)
+      .join("");
+
   document.getElementById("restoreBtn").style.display =
     colId === "archives" ? "inline-block" : "none";
 
@@ -387,15 +421,20 @@ function editClient() {
   const { colId, index } = currentClient;
 
   const col = boardData.columns.find(c => c.id === colId);
-  if (!col) return;
+  const c   = col.cards[index];
 
-  const c = col.cards[index];
   c.lastname  = document.getElementById("sheet-lastname").value.trim();
   c.firstname = document.getElementById("sheet-firstname").value.trim();
   c.tel       = document.getElementById("sheet-tel").value.trim();
   c.address   = document.getElementById("sheet-address").value.trim();
   c.email     = document.getElementById("sheet-email").value.trim();
+  c.work      = document.getElementById("sheet-work").value;
   c.comment   = document.getElementById("sheet-comment").value.trim();
+
+  c.history.push({
+    action: "Modification",
+    date: new Date().toLocaleString()
+  });
 
   saveBoard();
   renderBoard();
@@ -408,20 +447,21 @@ function editClient() {
 ===================================================== */
 
 function archiveClient() {
-  if (!currentClient) return;
   const { colId, index } = currentClient;
 
-  if (colId === "archives") {
-    alert("Client déjà archivé.");
-    return;
-  }
+  if (colId === "archives") return alert("Déjà archivé.");
 
   const fromCol = boardData.columns.find(c => c.id === colId);
   const archiveCol = boardData.columns.find(c => c.id === "archives");
-  if (!fromCol || !archiveCol) return;
 
   const client = fromCol.cards[index];
   fromCol.cards.splice(index, 1);
+
+  client.history.push({
+    action: "Archivage",
+    date: new Date().toLocaleString()
+  });
+
   archiveCol.cards.push(client);
 
   saveBoard();
@@ -431,19 +471,24 @@ function archiveClient() {
 
 
 /* =====================================================
-   ➤ RESTAURER CLIENT DEPUIS ARCHIVES
+   ➤ RESTAURER CLIENT
 ===================================================== */
 
 function restoreClient() {
-  if (!currentClient) return;
   const { colId, index } = currentClient;
   if (colId !== "archives") return;
 
   const archiveCol = boardData.columns.find(c => c.id === "archives");
-  const targetCol  = boardData.columns[0]; // retourne dans la 1ère colonne
+  const targetCol = boardData.columns[0];
 
   const client = archiveCol.cards[index];
   archiveCol.cards.splice(index, 1);
+
+  client.history.push({
+    action: "Restauration",
+    date: new Date().toLocaleString()
+  });
+
   targetCol.cards.push(client);
 
   saveBoard();
@@ -477,10 +522,7 @@ function renameColumn(colId) {
 }
 
 function deleteColumn(colId) {
-  if (colId === "archives") {
-    alert("Impossible de supprimer la colonne Archives.");
-    return;
-  }
+  if (colId === "archives") return alert("Impossible de supprimer Archives.");
   if (!confirm("Supprimer cette colonne ?")) return;
   boardData.columns = boardData.columns.filter(c => c.id !== colId);
   saveBoard();
@@ -495,12 +537,15 @@ function deleteColumn(colId) {
 function moveClient(clientId, toColId, fromColId) {
   const fromCol = boardData.columns.find(c => c.id === fromColId);
   const toCol   = boardData.columns.find(c => c.id === toColId);
-  if (!fromCol || !toCol) return;
 
   const client = fromCol.cards.find(c => c.id === clientId);
-  if (!client) return;
-
   fromCol.cards = fromCol.cards.filter(c => c.id !== clientId);
+
+  client.history.push({
+    action: `Déplacement vers « ${toCol.name} »`,
+    date: new Date().toLocaleString()
+  });
+
   toCol.cards.push(client);
 
   saveBoard();
