@@ -40,6 +40,7 @@ body {
   justify-content:space-between;
   align-items:center;
   margin-bottom:6px;
+  font-weight:600;
 }
 
 .menu-btn {
@@ -57,7 +58,9 @@ body {
   padding:6px;
   z-index:50;
 }
+
 .menu-list.open { display:block; }
+
 .menu-list button {
   background:none; border:none; padding:6px 10px;
   width:100%; text-align:left; cursor:pointer; font-size:14px;
@@ -75,9 +78,11 @@ body {
   cursor:pointer;
   box-shadow:0 1px 3px rgba(0,0,0,0.2);
   margin-bottom:8px;
+  user-select:none;
 }
 
 .card:hover { background:#f8f8f8; }
+
 .card-type {
   width:6px;
   align-self:stretch;
@@ -114,7 +119,8 @@ body {
   width:100%; padding:6px 8px;
   margin-top:3px;
   border-radius:6px;
-  border:1px solid #ccc; font-size:14px;
+  border:1px solid #ccc;
+  font-size:14px;
 }
 
 /* TIMELINE */
@@ -150,8 +156,8 @@ body {
 
 </header>
 
+<!-- === CONTENEUR DU BOARD === -->
 <main id="kanban-board" class="board-container"></main>
-
 <!-- =============== MODAL AJOUT CLIENT =============== -->
 <div id="clientModal" class="modal">
   <div class="modal-card">
@@ -188,6 +194,7 @@ body {
 
   </div>
 </div>
+
 
 <!-- =============== MODAL FICHE CLIENT =============== -->
 <div id="sheetModal" class="modal">
@@ -236,6 +243,7 @@ body {
   </div>
 </div>
 
+
 <!-- =============== MODAL HISTORIQUE COMPLET =============== -->
 <div id="historyModal" class="modal">
   <div class="modal-card" style="width:420px;">
@@ -244,14 +252,13 @@ body {
     <button onclick="closeHistoryModal()" class="btn" style="margin-top:15px;width:100%;">Fermer</button>
   </div>
 </div>
-
-
 <script>
 /* =====================================================
    INITIALISATION
 ===================================================== */
 
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
+
 if (!boardData) {
   boardData = {
     columns: [
@@ -282,7 +289,9 @@ function openClientModal(colId=null) {
   window.newClientTargetColumn = colId;
   clientModal.classList.add("open");
 }
-function closeClientModal() { clientModal.classList.remove("open"); }
+function closeClientModal() {
+  clientModal.classList.remove("open");
+}
 
 function createClient(e) {
   e.preventDefault();
@@ -300,7 +309,9 @@ function createClient(e) {
     work: work.value,
     comment: comment.value.trim(),
     intervention: null,
-    history: [{ action:"Création", date:new Date().toLocaleString() }]
+    history: [
+      { action:"Création", date:new Date().toLocaleString() }
+    ]
   };
 
   col.cards.push(client);
@@ -312,7 +323,7 @@ function createClient(e) {
 
 
 /* =====================================================
-   AFFICHAGE BOARD
+   RENDU DES COLONNES + CARTES
 ===================================================== */
 
 const colorMap = {
@@ -333,6 +344,7 @@ function renderBoard() {
 
   boardData.columns.forEach(col => {
 
+    /* ---- GENERATION DES COLONNES ---- */
     const colDiv = document.createElement("div");
     colDiv.className = "column";
 
@@ -349,26 +361,25 @@ function renderBoard() {
           ${col.id!="archives" ? `<button onclick="deleteColumn('${col.id}')">Supprimer</button>` : ""}
         </div>
       </div>
-
       <div class="cards" id="cards-${col.id}"></div>
     `;
 
     board.appendChild(colDiv);
 
-    /** ZONE DROP */
+    /* ---- ZONE DROP ---- */
     const cardsDiv = colDiv.querySelector(".cards");
     cardsDiv.ondragover = e => e.preventDefault();
     cardsDiv.ondrop = e => {
-      const cardId = e.dataTransfer.getData("cid");
-      const fromColId = e.dataTransfer.getData("fromCol");
-      moveClient(cardId, col.id, fromColId);
+      const clientId = e.dataTransfer.getData("cid");
+      const fromCol = e.dataTransfer.getData("fromCol");
+      moveClient(clientId, col.id, fromCol);
     };
 
-    /** CARTES CLIENTS */
+    /* ---- RENDU DES CARTES ---- */
     col.cards.forEach((client, index) => {
 
       let status = "";
-      if (client.intervention && client.intervention.date) {
+      if (client.intervention?.date) {
         if (client.intervention.date === today) status = " today";
         else if (client.intervention.date < today) status = " overdue";
       }
@@ -378,13 +389,12 @@ function renderBoard() {
       const card = document.createElement("div");
       card.className = "card" + status;
       card.draggable = true;
-
       card.innerHTML = `
         <div class="card-type" style="background:${typeColor}"></div>
         <div>${client.lastname} ${client.firstname}</div>
       `;
 
-      /** 🔥 PATCH ANTI-DRAG → CLIC 100% FIABLE */
+      /* ---- PATCH ANTI-DRAG POUR CLIC FIABLE ---- */
       let dragStartX = 0, dragStartY = 0, isDragging = false;
 
       card.addEventListener("mousedown", (e) => {
@@ -406,7 +416,7 @@ function renderBoard() {
         }
       });
 
-      /** DRAG */
+      /* ---- DRAG & DROP ---- */
       card.ondragstart = e => {
         isDragging = true;
         e.dataTransfer.setData("cid", client.id);
@@ -415,13 +425,46 @@ function renderBoard() {
 
       cardsDiv.appendChild(card);
     });
-
   });
 
   filterCards();
 }
 
 
+/* =====================================================
+   DEPLACEMENT (DRAG & DROP)
+===================================================== */
+
+function moveClient(clientId, toColId, fromColId) {
+  const fromCol = boardData.columns.find(c => c.id === fromColId);
+  const toCol = boardData.columns.find(c => c.id === toColId);
+
+  const client = fromCol.cards.find(c => c.id === clientId);
+
+  fromCol.cards = fromCol.cards.filter(c => c.id !== clientId);
+
+  client.history.push({
+    action:"Déplacement",
+    date:new Date().toLocaleString()
+  });
+
+  toCol.cards.push(client);
+
+  saveBoard();
+  renderBoard();
+}
+
+
+/* =====================================================
+   RECHERCHE TEMPS RÉEL
+===================================================== */
+
+function filterCards() {
+  const q = searchInput.value.toLowerCase();
+  document.querySelectorAll(".card").forEach(card => {
+    card.style.display = card.innerText.toLowerCase().includes(q) ? "flex" : "none";
+  });
+}
 /* =====================================================
    FICHE CLIENT
 ===================================================== */
@@ -445,15 +488,23 @@ function openSheet(client, colId, index) {
   sheetIntTech.value = i.tech || "";
   sheetIntNote.value = i.note || "";
 
-  restoreBtn.style.display = colId==="archives" ? "block" : "none";
+  restoreBtn.style.display = colId === "archives" ? "block" : "none";
+
   sheetModal.classList.add("open");
 }
 
-function closeSheet() { sheetModal.classList.remove("open"); }
+function closeSheet() {
+  sheetModal.classList.remove("open");
+}
+
+
+/* =====================================================
+   MODIFICATION / INTERVENTION CLIENT
+===================================================== */
 
 function editClient() {
   const { colId, index } = currentClient;
-  const col = boardData.columns.find(c => c.id===colId);
+  const col = boardData.columns.find(c => c.id === colId);
   const c = col.cards[index];
 
   c.lastname = sheetLastname.value.trim();
@@ -472,22 +523,22 @@ function editClient() {
   const hadIntervention = !!(c.intervention && c.intervention.date);
 
   if (d || t || tech || note) {
-    c.intervention = { date:d, time:t, tech:tech, note:note };
+    c.intervention = { date: d, time: t, tech: tech, note: note };
     c.history.push({
       action: hadIntervention ? "Intervention mise à jour" : "Intervention planifiée",
-      date:new Date().toLocaleString()
+      date: new Date().toLocaleString()
     });
   } else if (hadIntervention) {
     c.intervention = null;
     c.history.push({
-      action:"Intervention supprimée",
-      date:new Date().toLocaleString()
+      action: "Intervention supprimée",
+      date: new Date().toLocaleString()
     });
   }
 
   c.history.push({
-    action:"Modification fiche",
-    date:new Date().toLocaleString()
+    action: "Modification fiche",
+    date: new Date().toLocaleString()
   });
 
   saveBoard();
@@ -502,17 +553,21 @@ function editClient() {
 
 function archiveClient() {
   const { colId, index } = currentClient;
-  if (colId==="archives") return;
+  if (colId === "archives") return;
 
-  const fromCol = boardData.columns.find(c => c.id===colId);
-  const toCol = boardData.columns.find(c => c.id==="archives");
+  const fromCol = boardData.columns.find(c => c.id === colId);
+  const toCol = boardData.columns.find(c => c.id === "archives");
 
   const client = fromCol.cards[index];
-  fromCol.cards.splice(index,1);
+  fromCol.cards.splice(index, 1);
 
-  client.history.push({ action:"Archivage", date:new Date().toLocaleString() });
+  client.history.push({
+    action: "Archivage",
+    date: new Date().toLocaleString()
+  });
 
   toCol.cards.push(client);
+
   saveBoard();
   renderBoard();
   closeSheet();
@@ -520,17 +575,21 @@ function archiveClient() {
 
 function restoreClient() {
   const { colId, index } = currentClient;
-  if (colId!=="archives") return;
+  if (colId !== "archives") return;
 
-  const fromCol = boardData.columns.find(c => c.id==="archives");
+  const fromCol = boardData.columns.find(c => c.id === "archives");
   const toCol = boardData.columns[0];
 
   const client = fromCol.cards[index];
-  fromCol.cards.splice(index,1);
+  fromCol.cards.splice(index, 1);
 
-  client.history.push({ action:"Restauration", date:new Date().toLocaleString() });
+  client.history.push({
+    action: "Restauration",
+    date: new Date().toLocaleString()
+  });
 
   toCol.cards.push(client);
+
   saveBoard();
   renderBoard();
   closeSheet();
@@ -543,14 +602,16 @@ function restoreClient() {
 
 function openHistoryModal() {
   const { colId, index } = currentClient;
-  const col = boardData.columns.find(c => c.id===colId);
+  const col = boardData.columns.find(c => c.id === colId);
   const c = col.cards[index];
 
   historyTimeline.innerHTML = buildTimeline(c.history);
   historyModal.classList.add("open");
 }
 
-function closeHistoryModal() { historyModal.classList.remove("open"); }
+function closeHistoryModal() {
+  historyModal.classList.remove("open");
+}
 
 function buildTimeline(history) {
   const icons = {
@@ -577,7 +638,7 @@ function buildTimeline(history) {
 
 
 /* =====================================================
-   COLONNES
+   GESTION DES COLONNES
 ===================================================== */
 
 function toggleMenu(id, event) {
@@ -591,60 +652,30 @@ document.addEventListener("click", () => {
 });
 
 function renameColumn(colId) {
-  const col = boardData.columns.find(c => c.id===colId);
+  const col = boardData.columns.find(c => c.id === colId);
   const name = prompt("Nouveau nom :", col.name);
   if (name) {
-    col.name = name;
+    col.name = name.trim();
     saveBoard();
     renderBoard();
   }
 }
 
 function deleteColumn(colId) {
-  if (colId==="archives") return alert("Impossible de supprimer Archives.");
+  if (colId === "archives") return alert("Impossible de supprimer Archives.");
   if (!confirm("Supprimer cette colonne ?")) return;
 
-  boardData.columns = boardData.columns.filter(c => c.id!==colId);
+  boardData.columns = boardData.columns.filter(c => c.id !== colId);
+
   saveBoard();
   renderBoard();
 }
 
 
 /* =====================================================
-   DRAG
+   FIN ET INITIALISATION
 ===================================================== */
 
-function moveClient(clientId, toColId, fromColId) {
-  const fromCol = boardData.columns.find(c => c.id===fromColId);
-  const toCol = boardData.columns.find(c => c.id===toColId);
-
-  const client = fromCol.cards.find(c => c.id===clientId);
-  fromCol.cards = fromCol.cards.filter(c => c.id!==clientId);
-
-  client.history.push({
-    action:"Déplacement",
-    date:new Date().toLocaleString()
-  });
-
-  toCol.cards.push(client);
-  saveBoard();
-  renderBoard();
-}
-
-
-/* =====================================================
-   RECHERCHE
-===================================================== */
-
-function filterCards() {
-  const q = searchInput.value.toLowerCase();
-  document.querySelectorAll(".card").forEach(card => {
-    card.style.display = card.innerText.toLowerCase().includes(q) ? "flex" : "none";
-  });
-}
-
-
-/* INIT */
 renderBoard();
 
 </script>
