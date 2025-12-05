@@ -88,6 +88,23 @@
   max-height:85vh;
   overflow-y:auto;
 }
+
+.modal-card label {
+  font-size:13px;
+  font-weight:600;
+  display:block;
+  margin-top:6px;
+}
+.modal-card input,
+.modal-card textarea {
+  width:100%;
+  box-sizing:border-box;
+  padding:6px 8px;
+  margin-top:3px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
 </style>
 </head>
 
@@ -123,14 +140,26 @@
   <div class="modal-card">
     <h3>Nouveau client</h3>
     <form onsubmit="createClient(event)">
-      <input id="lastname" placeholder="Nom" required/>
-      <input id="firstname" placeholder="Prénom" required/>
-      <input id="tel" placeholder="Téléphone"/>
-      <input id="address" placeholder="Adresse"/>
-      <input id="email" placeholder="Email"/>
-      <textarea id="comment" placeholder="Commentaire" rows="3"></textarea>
+      <label>Nom
+        <input id="lastname" placeholder="Nom" required/>
+      </label>
+      <label>Prénom
+        <input id="firstname" placeholder="Prénom" required/>
+      </label>
+      <label>Téléphone
+        <input id="tel" placeholder="Téléphone"/>
+      </label>
+      <label>Adresse
+        <input id="address" placeholder="Adresse"/>
+      </label>
+      <label>Email
+        <input id="email" placeholder="Email"/>
+      </label>
+      <label>Commentaire
+        <textarea id="comment" placeholder="Commentaire" rows="3"></textarea>
+      </label>
 
-      <div style="margin-top:10px;">
+      <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
         <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
         <button type="submit" class="btn btn-primary">Ajouter</button>
       </div>
@@ -139,14 +168,32 @@
 </div>
 
 
-<!-- =============== MODAL FICHE CLIENT =============== -->
+<!-- =============== MODAL FICHE CLIENT AMÉLIORÉE =============== -->
 <div id="sheetModal" class="modal">
   <div class="modal-card">
     <h3>Fiche client</h3>
-    <div id="clientSheet"></div>
 
-    <div style="display:flex;gap:10px;margin-top:15px;">
-      <button onclick="editClient()" class="btn btn-primary" style="flex:1">✏ Modifier</button>
+    <label>Nom
+      <input id="sheet-lastname" />
+    </label>
+    <label>Prénom
+      <input id="sheet-firstname" />
+    </label>
+    <label>Téléphone
+      <input id="sheet-tel" />
+    </label>
+    <label>Adresse
+      <input id="sheet-address" />
+    </label>
+    <label>Email
+      <input id="sheet-email" />
+    </label>
+    <label>Commentaire
+      <textarea id="sheet-comment" rows="3"></textarea>
+    </label>
+
+    <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
+      <button onclick="editClient()" class="btn btn-primary" style="flex:1">💾 Enregistrer</button>
       <button onclick="archiveClient()" class="btn btn-accent" style="flex:1">📥 Archiver</button>
       <button onclick="restoreClient()" class="btn btn-primary" style="flex:1;display:none" id="restoreBtn">↩ Restaurer</button>
     </div>
@@ -190,6 +237,7 @@ function addColumn() {
   const name = prompt("Nom de la colonne ?");
   if (!name) return;
 
+  // insère avant Archives
   boardData.columns.splice(boardData.columns.length - 1, 0, {
     id: "col-"+Date.now(),
     name,
@@ -206,7 +254,7 @@ function addColumn() {
 ===================================================== */
 
 function openClientModal(columnId = null) {
-  window.newClientTargetColumn = columnId;
+  window.newClientTargetColumn = columnId; // null => 1ère colonne
   document.getElementById("clientModal").classList.add("open");
 }
 function closeClientModal() {
@@ -221,12 +269,12 @@ function createClient(e) {
 
   const client = {
     id: Date.now().toString(),
-    lastname: lastname.value,
-    firstname: firstname.value,
-    tel: tel.value,
-    address: address.value,
-    email: email.value,
-    comment: comment.value
+    lastname: document.getElementById("lastname").value.trim(),
+    firstname: document.getElementById("firstname").value.trim(),
+    tel: document.getElementById("tel").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    comment: document.getElementById("comment").value.trim()
   };
 
   col.cards.push(client);
@@ -234,6 +282,7 @@ function createClient(e) {
   saveBoard();
   closeClientModal();
   renderBoard();
+  e.target.reset();
 }
 
 
@@ -246,7 +295,7 @@ function renderBoard() {
   const board = document.getElementById("kanban-board");
   board.innerHTML = "";
 
-  boardData.columns.forEach((col, colIndex) => {
+  boardData.columns.forEach((col) => {
 
     const colDiv = document.createElement("div");
     colDiv.className = "column";
@@ -275,7 +324,8 @@ function renderBoard() {
     cardsDiv.ondragover = e => e.preventDefault();
     cardsDiv.ondrop = e => {
       const cardId = e.dataTransfer.getData("cid");
-      moveClient(cardId, col.id, e.dataTransfer.getData("fromCol"));
+      const fromColId = e.dataTransfer.getData("fromCol");
+      moveClient(cardId, col.id, fromColId);
     };
 
     col.cards.forEach((client, index) => {
@@ -299,26 +349,26 @@ function renderBoard() {
 }
 
 
+
 /* =====================================================
-   ➤ FICHE CLIENT
+   ➤ FICHE CLIENT (AMÉLIORÉE)
 ===================================================== */
 
 let currentClient = null;
 
 function openSheet(client, colId, index) {
-  currentClient = { client, colId, index };
+  currentClient = { colId, index };
 
-  document.getElementById("clientSheet").innerHTML = `
-    <p><b>Nom :</b> ${client.lastname}</p>
-    <p><b>Prénom :</b> ${client.firstname}</p>
-    <p><b>Téléphone :</b> ${client.tel || "-"}</p>
-    <p><b>Adresse :</b> ${client.address || "-"}</p>
-    <p><b>Email :</b> ${client.email || "-"}</p>
-    <p><b>Commentaire :</b><br>${client.comment || "-"}</p>
-  `;
+  document.getElementById("sheet-lastname").value  = client.lastname || "";
+  document.getElementById("sheet-firstname").value = client.firstname || "";
+  document.getElementById("sheet-tel").value      = client.tel || "";
+  document.getElementById("sheet-address").value  = client.address || "";
+  document.getElementById("sheet-email").value    = client.email || "";
+  document.getElementById("sheet-comment").value  = client.comment || "";
 
+  // bouton Restaurer visible seulement si Archives
   document.getElementById("restoreBtn").style.display =
-    colId === "archives" ? "block" : "none";
+    colId === "archives" ? "inline-block" : "none";
 
   document.getElementById("sheetModal").classList.add("open");
 }
@@ -329,17 +379,24 @@ function closeSheet() {
 
 
 /* =====================================================
-   ➤ MODIFIER CLIENT
+   ➤ ENREGISTRER MODIFS CLIENT
 ===================================================== */
 
 function editClient() {
-  const { client, colId, index } = currentClient;
+  if (!currentClient) return;
+  const { colId, index } = currentClient;
+
   const col = boardData.columns.find(c => c.id === colId);
+  if (!col) return;
 
-  const newComment = prompt("Modifier le commentaire :", client.comment);
-  if (newComment === null) return;
+  const c = col.cards[index];
+  c.lastname  = document.getElementById("sheet-lastname").value.trim();
+  c.firstname = document.getElementById("sheet-firstname").value.trim();
+  c.tel       = document.getElementById("sheet-tel").value.trim();
+  c.address   = document.getElementById("sheet-address").value.trim();
+  c.email     = document.getElementById("sheet-email").value.trim();
+  c.comment   = document.getElementById("sheet-comment").value.trim();
 
-  col.cards[index].comment = newComment;
   saveBoard();
   renderBoard();
   closeSheet();
@@ -351,14 +408,20 @@ function editClient() {
 ===================================================== */
 
 function archiveClient() {
-  const { client, colId, index } = currentClient;
+  if (!currentClient) return;
+  const { colId, index } = currentClient;
 
-  if (colId === "archives") return alert("Déjà archivé.");
+  if (colId === "archives") {
+    alert("Client déjà archivé.");
+    return;
+  }
 
-  const col = boardData.columns.find(c => c.id === colId);
+  const fromCol = boardData.columns.find(c => c.id === colId);
   const archiveCol = boardData.columns.find(c => c.id === "archives");
+  if (!fromCol || !archiveCol) return;
 
-  col.cards.splice(index, 1);
+  const client = fromCol.cards[index];
+  fromCol.cards.splice(index, 1);
   archiveCol.cards.push(client);
 
   saveBoard();
@@ -368,18 +431,20 @@ function archiveClient() {
 
 
 /* =====================================================
-   ➤ RESTAURER CLIENT
+   ➤ RESTAURER CLIENT DEPUIS ARCHIVES
 ===================================================== */
 
 function restoreClient() {
-  const { client, colId, index } = currentClient;
+  if (!currentClient) return;
+  const { colId, index } = currentClient;
   if (colId !== "archives") return;
 
-  const source = boardData.columns.find(c => c.id === "archives");
-  const target = boardData.columns[0]; // retour dans "À faire"
+  const archiveCol = boardData.columns.find(c => c.id === "archives");
+  const targetCol  = boardData.columns[0]; // retourne dans la 1ère colonne
 
-  source.cards.splice(index, 1);
-  target.cards.push(client);
+  const client = archiveCol.cards[index];
+  archiveCol.cards.splice(index, 1);
+  targetCol.cards.push(client);
 
   saveBoard();
   renderBoard();
@@ -388,27 +453,36 @@ function restoreClient() {
 
 
 /* =====================================================
-   ➤ SUPPRESSION COLONNE
+   ➤ MENU COLONNES (3 POINTS)
 ===================================================== */
 
-function deleteColumn(colId) {
-  if (!confirm("Supprimer cette colonne ?")) return;
-
-  boardData.columns = boardData.columns.filter(c => c.id !== colId);
-  saveBoard();
-  renderBoard();
+function toggleMenu(id, event) {
+  event.stopPropagation();
+  document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open"));
+  const menu = document.getElementById(id);
+  if (menu) menu.classList.add("open");
 }
 
-
-/* =====================================================
-   ➤ RENOMMER COLONNE
-===================================================== */
+document.addEventListener("click", () => {
+  document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open"));
+});
 
 function renameColumn(colId) {
   const col = boardData.columns.find(c => c.id === colId);
   const newName = prompt("Nouveau nom :", col.name);
   if (!newName) return;
   col.name = newName;
+  saveBoard();
+  renderBoard();
+}
+
+function deleteColumn(colId) {
+  if (colId === "archives") {
+    alert("Impossible de supprimer la colonne Archives.");
+    return;
+  }
+  if (!confirm("Supprimer cette colonne ?")) return;
+  boardData.columns = boardData.columns.filter(c => c.id !== colId);
   saveBoard();
   renderBoard();
 }
@@ -420,9 +494,11 @@ function renameColumn(colId) {
 
 function moveClient(clientId, toColId, fromColId) {
   const fromCol = boardData.columns.find(c => c.id === fromColId);
-  const toCol = boardData.columns.find(c => c.id === toColId);
+  const toCol   = boardData.columns.find(c => c.id === toColId);
+  if (!fromCol || !toCol) return;
 
   const client = fromCol.cards.find(c => c.id === clientId);
+  if (!client) return;
 
   fromCol.cards = fromCol.cards.filter(c => c.id !== clientId);
   toCol.cards.push(client);
