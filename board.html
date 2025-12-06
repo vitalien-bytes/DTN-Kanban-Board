@@ -736,6 +736,27 @@ function filterCards() {
       card.innerText.toLowerCase().includes(q) ? "flex" : "none";
   });
 }
+/* ================================
+   ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
+================================ */
+
+const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec";
+
+function sauvegardeDrive() {
+  const data = localStorage.getItem("boardData");
+  if (!data) return;
+
+  fetch(DRIVE_URL, {
+    method: "POST",
+    body: data,
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(() => console.log("✅ Sauvegarde Drive OK"))
+  .catch(err => console.error("❌ Erreur sauvegarde Drive", err));
+}
+
+// Sauvegarde toutes les 5 minutes
+setInterval(sauvegardeDrive, 300000);
 
 
 /* INIT */
@@ -744,3 +765,4 @@ renderBoard();
 
 </body>
 </html>
+
