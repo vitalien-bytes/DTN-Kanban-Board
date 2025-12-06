@@ -740,7 +740,7 @@ function filterCards() {
    ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
 ================================ */
 
-const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec";
+window.DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec";
 
 function sauvegardeDrive() {
   const data = localStorage.getItem("boardData");
@@ -781,5 +781,6 @@ renderBoard();
 
 </body>
 </html>
+
 
 
