@@ -146,11 +146,13 @@
     <input type="text" id="searchInput" placeholder="Rechercher un client…" oninput="filterCards()">
   </div>
 
-  <div class="actions">
+    <div class="actions">
     <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
     <button onclick="addColumn()" class="btn btn-accent">➕ Colonne</button>
     <button onclick="saveBoard()" class="btn btn-accent">💾</button>
+    <button onclick="openPlanning()" class="btn btn-accent">📅 Planning</button>
   </div>
+
 
 </header>
 
@@ -737,6 +739,15 @@ function filterCards() {
   });
 }
 /* ================================
+   📅 PLANNING (VERSION 1)
+================================ */
+
+function openPlanning() {
+  alert("📅 Planning DTN SmartOps\n\nVersion test :\nLe planning sera connecté aux interventions des clients.");
+}
+
+  
+/* ================================
    ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
 ================================ */
 
@@ -781,6 +792,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
