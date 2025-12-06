@@ -1,5 +1,8 @@
-[
-  { "id": 1, "title": "Nouveaux clients", "cards": ["Exemple 1", "Exemple 2"] },
-  { "id": 2, "title": "Visites prévues", "cards": ["Exemple 3"] },
-  { "id": 3, "title": "Devis à faire", "cards": ["Exemple 4", "Exemple 5"] }
-]
+{
+  "columns": [
+    { "id": "col-1", "name": "À faire", "cards": [] },
+    { "id": "col-2", "name": "En cours", "cards": [] },
+    { "id": "col-3", "name": "Terminé", "cards": [] },
+    { "id": "archives", "name": "Archives", "cards": [] }
+  ]
+}
