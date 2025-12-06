@@ -324,6 +324,23 @@
 
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
+// 🔁 CHARGEMENT DEPUIS LE CLOUD AU DÉMARRAGE
+fetch(DRIVE_URL)
+  .then(res => res.text())
+  .then(cloudData => {
+    if (cloudData && cloudData !== "{}") {
+      localStorage.setItem("boardData", cloudData);
+      boardData = JSON.parse(cloudData);
+      console.log("☁️ Données chargées depuis le cloud");
+    }
+    renderBoard();
+  })
+  .catch(err => {
+    console.warn("⚠️ Cloud inaccessible, mode local activé");
+    renderBoard();
+  });
+  
+  
 if (!boardData) {
   boardData = {
     columns: [
@@ -745,7 +762,7 @@ function filterCards() {
    ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
 ================================ */
 
-const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec";
+const DRIVE_URL = "https://script.google.com/macros/s/AKfycbwkM9NqnSc_DTP7Kls7CRHbWGf7940_Y1mtOFrua1J7FeVqFGTfiSotZiuA5WsEjg7jXg/exec";
 
 function sauvegardeDrive() {
   const data = localStorage.getItem("boardData");
@@ -776,7 +793,10 @@ function sauvegardeDrive() {
 }
 
 // Sauvegarde toutes les 5 minutes
-setInterval(sauvegardeDrive, 300000);
+setInterval(() => {
+  console.log("🔄 Sync automatique en cours...");
+  sauvegardeDrive();
+}, 30000); // toutes les 30 secondes
 
 /* ================================
    📅 PLANNING – NIVEAU 2 COMPLET
@@ -908,6 +928,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
