@@ -744,16 +744,32 @@ const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGT
 
 function sauvegardeDrive() {
   const data = localStorage.getItem("boardData");
-  if (!data) return;
+  console.log("📦 Données envoyées :", data);
+
+  if (!data) {
+    console.warn("⚠️ Aucun boardData trouvé dans le localStorage");
+    return;
+  }
 
   fetch(DRIVE_URL, {
     method: "POST",
     body: data,
-    headers: { "Content-Type": "application/json" }
+    headers: {
+      "Content-Type": "application/json"
+    }
   })
-  .then(() => console.log("✅ Sauvegarde Drive OK"))
-  .catch(err => console.error("❌ Erreur sauvegarde Drive", err));
+  .then(res => {
+    console.log("📡 Réponse brute :", res);
+    return res.text();
+  })
+  .then(txt => {
+    console.log("✅ Réponse serveur :", txt);
+  })
+  .catch(err => {
+    console.error("❌ ERREUR FETCH :", err);
+  });
 }
+
 
 // Sauvegarde toutes les 5 minutes
 setInterval(sauvegardeDrive, 300000);
@@ -765,4 +781,5 @@ renderBoard();
 
 </body>
 </html>
+
 
