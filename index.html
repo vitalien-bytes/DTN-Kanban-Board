@@ -736,12 +736,18 @@ function filterCards() {
       card.innerText.toLowerCase().includes(q) ? "flex" : "none";
   });
 }
-/* ================================
-   ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
-================================ */
+<!-- ================================
+✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE
+================================ -->
 
+<script>
+/* ✅ 1. URL GLOBALE DU SCRIPT GOOGLE */
 window.DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec";
 
+/* ✅ 2. TEST IMMÉDIAT POUR VÉRIFIER QUE L’URL EST BIEN CHARGÉE */
+console.log("✅ DRIVE_URL chargé :", window.DRIVE_URL);
+
+/* ✅ 3. FONCTION DE SAUVEGARDE */
 function sauvegardeDrive() {
   const data = localStorage.getItem("boardData");
   console.log("📦 Données envoyées :", data);
@@ -751,7 +757,7 @@ function sauvegardeDrive() {
     return;
   }
 
-  fetch(DRIVE_URL, {
+  fetch(window.DRIVE_URL, {
     method: "POST",
     body: data,
     headers: {
@@ -770,8 +776,10 @@ function sauvegardeDrive() {
   });
 }
 
-// Sauvegarde toutes les 5 minutes
+/* ✅ 4. SAUVEGARDE AUTOMATIQUE TOUTES LES 5 MINUTES */
 setInterval(sauvegardeDrive, 300000);
+</script>
+
 
 
 
@@ -781,6 +789,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
