@@ -738,13 +738,7 @@ function filterCards() {
       card.innerText.toLowerCase().includes(q) ? "flex" : "none";
   });
 }
-/* ================================
-   📅 PLANNING (VERSION 1)
-================================ */
 
-function openPlanning() {
-  alert("📅 Planning DTN SmartOps\n\nVersion test :\nLe planning sera connecté aux interventions des clients.");
-}
 
   
 /* ================================
@@ -784,14 +778,98 @@ function sauvegardeDrive() {
 // Sauvegarde toutes les 5 minutes
 setInterval(sauvegardeDrive, 300000);
 
+/* ================================
+   📅 PLANNING – NIVEAU 2 COMPLET
+================================ */
+
+function openPlanning() {
+  document.getElementById("planningModal").classList.add("open");
+
+  const today = getTodayYMD();
+  document.getElementById("planningDate").value = today;
+
+  renderPlanning();
+}
+
+function closePlanning() {
+  document.getElementById("planningModal").classList.remove("open");
+}
+
+function renderPlanning() {
+  const date = document.getElementById("planningDate").value;
+  const techFilter = document.getElementById("planningTech").value.toLowerCase();
+  const container = document.getElementById("planningList");
+
+  let html = "";
+  let found = false;
+
+  boardData.columns.forEach(col => {
+    col.cards.forEach((client, index) => {
+      if (!client.intervention || !client.intervention.date) return;
+
+      const i = client.intervention;
+      if (i.date !== date) return;
+
+      if (techFilter && !i.tech.toLowerCase().includes(techFilter)) return;
+
+      const isLate = i.date < getTodayYMD();
+      const bg = isLate ? "#ffe5e5" : "#f5f5f5";
+
+      found = true;
+
+      html += `
+        <div onclick="openPlanningClient('${col.id}','${client.id}')" 
+             style="padding:10px;margin-bottom:8px;border-radius:6px;
+             background:${bg};cursor:pointer;">
+          <b>${client.lastname} ${client.firstname}</b><br>
+          🕒 ${i.time || "--"} | 👷 ${i.tech || "Non défini"}
+        </div>
+      `;
+    });
+  });
+
+  container.innerHTML = found ? html : "<i>Aucune intervention ce jour</i>";
+}
+
+function openPlanningClient(colId, clientId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  const index = col.cards.findIndex(c => c.id === clientId);
+  const client = col.cards[index];
+
+  closePlanning();
+  openSheet(client, colId, index);
+}
 
 
 /* INIT */
 renderBoard();
 </script>
 
+<!-- =============== MODAL PLANNING =============== -->
+<div id="planningModal" class="modal">
+  <div class="modal-card" style="width:520px;">
+    <h3>📅 Planning des interventions</h3>
+
+    <label>Date
+      <input type="date" id="planningDate" onchange="renderPlanning()">
+    </label>
+
+    <label>Technicien
+      <input id="planningTech" placeholder="Filtrer par technicien" oninput="renderPlanning()">
+    </label>
+
+    <div id="planningList" style="margin-top:12px;"></div>
+
+    <button onclick="closePlanning()" class="btn" style="margin-top:15px;width:100%;">
+      Fermer
+    </button>
+  </div>
+</div>
+
+
 </body>
 </html>
+
 
 
 
