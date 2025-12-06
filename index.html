@@ -1,1 +1,746 @@
-<html lang="fr"> <head> <meta charset="UTF-8"/> <meta name="viewport" content="width=device-width, initial-scale=1"/> <title>DTN SmartOps</title> <link rel="stylesheet" href="style.css"/> <style> /* --- STYLE TRELLO PRO --- */ .topbar { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#1f1f1f; color:white; } .search-box { margin-left:20px; } .search-box input { padding:8px 12px; border-radius:8px; border:none; width:220px; } .board-container { display:flex; gap:18px; padding:16px; overflow-x:auto; } /* Colonnes */ .column { background:#ebecf0; width:270px; padding:10px; border-radius:10px; flex-shrink:0; position:relative; } .column-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; } /* Menus colonnes */ .menu-btn { background:none; border:none; font-size:20px; cursor:pointer; padding:3px; } .menu-list { display:none; position:absolute; right:10px; top:40px; background:white; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.2); padding:6px; z-index:50; } .menu-list.open { display:block; } .menu-list button { background:none; border:none; padding:6px 10px; width:100%; text-align:left; cursor:pointer; font-size:14px; } /* Cartes */ .card { display:flex; align-items:center; gap:8px; background:white; padding:10px; border-radius:8px; font-weight:600; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.2); margin-bottom:8px; } .card:hover { background:#f8f8f8; } .card-type { width:6px; align-self:stretch; border-radius:4px; } /* Rappel interventions */ .card.today { background:#fff7e0; } .card.overdue { background:#ffe5e5; } /* Modales */ .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; } .modal.open { display:flex; } .modal-card { background:white; padding:18px; border-radius:12px; width:340px; max-height:85vh; overflow-y:auto; } .modal-card label { font-size:13px; font-weight:600; display:block; margin-top:6px; } .modal-card input, .modal-card select, .modal-card textarea { width:100%; padding:6px 8px; margin-top:3px; border-radius:6px; border:1px solid #ccc; font-size:14px; } </style> </head> <body> <header class="topbar"> <div class="brand"> <img src="logo.png" class="logo" style="height:40px;margin-right:10px"/> <span style="font-size:20px;"><b>DTN</b> SmartOps</span> </div> <!-- 🔎 Recherche globale --> <div class="search-box"> <input type="text" id="searchInput" placeholder="Rechercher un client…" oninput="filterCards()"> </div> <div class="actions"> <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button> <button onclick="addColumn()" class="btn btn-accent">➕ Colonne</button> <button onclick="saveBoard()" class="btn btn-accent">💾</button> </div> </header> <main id="kanban-board" class="board-container"></main> <!-- =============== MODAL AJOUT CLIENT =============== --> <div id="clientModal" class="modal"> <div class="modal-card"> <h3>Nouveau client</h3> <form onsubmit="createClient(event)"> <label>Nom <input id="lastname" placeholder="Nom" required/> </label> <label>Prénom <input id="firstname" placeholder="Prénom" required/> </label> <label>Téléphone <input id="tel" placeholder="Téléphone"/> </label> <label>Adresse <input id="address" placeholder="Adresse"/> </label> <label>Email <input id="email" placeholder="Email"/> </label> <label>Type de chantier <select id="work"> <option value="Fibre / Télécom">Fibre / Télécom</option> <option value="Électricité">Électricité</option> <option value="IRVE">IRVE</option> <option value="Photovoltaïque">Photovoltaïque</option> <option value="Terrassement">Terrassement</option> <option value="Détection réseaux">Détection réseaux</option> <option value="Autres">Autres</option> </select> </label> <label>Commentaire <textarea id="comment" placeholder="Commentaire" rows="3"></textarea> </label> <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;"> <button type="button" onclick="closeClientModal()" class="btn">Annuler</button> <button type="submit" class="btn btn-primary">Ajouter</button> </div> </form> </div> </div> <!-- =============== MODAL FICHE CLIENT =============== --> <div id="sheetModal" class="modal"> <div class="modal-card" style="width:380px;"> <h3>Fiche client</h3> <label>Nom <input id="sheet-lastname"/> </label> <label>Prénom <input id="sheet-firstname"/> </label> <label>Téléphone <input id="sheet-tel"/> </label> <label>Adresse <input id="sheet-address"/> </label> <label>Email <input id="sheet-email"/> </label> <label>Type de chantier <select id="sheet-work"> <option value="Fibre / Télécom">Fibre / Télécom</option> <option value="Électricité">Électricité</option> <option value="IRVE">IRVE</option> <option value="Photovoltaïque">Photovoltaïque</option> <option value="Terrassement">Terrassement</option> <option value="Détection réseaux">Détection réseaux</option> <option value="Autres">Autres</option> </select> </label> <label>Commentaire <textarea id="sheet-comment" rows="3"></textarea> </label> <h4 style="margin-top:10px;">Intervention planifiée</h4> <label>Date <input type="date" id="sheet-int-date"/> </label> <label>Heure <input type="time" id="sheet-int-time"/> </label> <label>Technicien <input id="sheet-int-tech" placeholder="Nom du technicien"/> </label> <label>Note intervention <textarea id="sheet-int-note" rows="2"></textarea> </label> <!-- 🔘 Bouton pour ouvrir l'historique complet --> <button onclick="openHistoryModal()" class="btn btn-primary" style="margin-top:10px;width:100%;"> 📜 Historique complet </button> <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;"> <button onclick="editClient()" class="btn btn-primary" style="flex:1">💾 Enregistrer</button> <button onclick="archiveClient()" class="btn btn-accent" style="flex:1">📥 Archiver</button> <button onclick="restoreClient()" class="btn btn-primary" style="flex:1;display:none" id="restoreBtn">↩ Restaurer</button> </div> <button onclick="closeSheet()" class="btn close-btn" style="margin-top:12px;width:100%">Fermer</button> </div> </div> <!-- =============== MODAL HISTORIQUE COMPLET =============== --> <div id="historyModal" class="modal"> <div class="modal-card" style="width:420px;"> <h3>Historique complet</h3> <div id="historyTimeline" style="margin-top:10px;"> <!-- Timeline insérée ici par JS --> </div> <button onclick="closeHistoryModal()" class="btn" style="margin-top:15px;width:100%;"> Fermer </button> </div> </div> <style> .timeline-item { display:flex; gap:12px; margin-bottom:16px; } .timeline-icon { font-size:20px; width:30px; text-align:center; } .timeline-content { background:#f5f5f5; padding:10px 12px; border-radius:6px; flex:1; font-size:14px; } .timeline-date { font-size:12px; color:#777; margin-top:4px; } </style> <script> /* ===================================================== ➤ INITIALISATION BOARD + ARCHIVES ===================================================== */ let boardData = JSON.parse(localStorage.getItem("boardData") || "null"); if (!boardData) { boardData = { columns: [ { id:"col-1", name:"À faire", cards:[] }, { id:"col-2", name:"En cours", cards:[] }, { id:"col-3", name:"Terminé", cards:[] }, { id:"archives", name:"Archives", cards:[] } ] }; saveBoard(); } function saveBoard() { localStorage.setItem("boardData", JSON.stringify(boardData)); } /* Date du jour au format YYYY-MM-DD */ function getTodayYMD() { const d = new Date(); return ${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}; } /* ===================================================== ➤ AJOUT COLONNE ===================================================== */ function addColumn() { const name = prompt("Nom de la colonne ?"); if (!name) return; boardData.columns.splice(boardData.columns.length - 1, 0, { id: "col-"+Date.now(), name, cards:[] }); saveBoard(); renderBoard(); } /* ===================================================== ➤ MODALE AJOUT CLIENT ===================================================== */ function openClientModal(columnId = null) { window.newClientTargetColumn = columnId; document.getElementById("clientModal").classList.add("open"); } function closeClientModal() { document.getElementById("clientModal").classList.remove("open"); } function createClient(e) { e.preventDefault(); const colId = window.newClientTargetColumn || boardData.columns[0].id; const col = boardData.columns.find(c => c.id === colId); const client = { id: Date.now().toString(), lastname: document.getElementById("lastname").value.trim(), firstname: document.getElementById("firstname").value.trim(), tel: document.getElementById("tel").value.trim(), address: document.getElementById("address").value.trim(), email: document.getElementById("email").value.trim(), work: document.getElementById("work").value, comment: document.getElementById("comment").value.trim(), intervention: null, history: [ { action:"Création", date:new Date().toLocaleString() } ] }; col.cards.push(client); saveBoard(); closeClientModal(); renderBoard(); e.target.reset(); } /* ===================================================== ➤ AFFICHAGE BOARD (cartes + couleurs + rappels) ===================================================== */ function renderBoard() { const board = document.getElementById("kanban-board"); board.innerHTML = ""; const colorMap = { "Fibre / Télécom": "#007bff", "Électricité": "#8e44ad", "IRVE": "#27ae60", "Photovoltaïque": "#f1c40f", "Terrassement": "#e74c3c", "Détection réseaux": "#e67e22", "Autres": "#7f8c8d" }; const today = getTodayYMD(); boardData.columns.forEach((col) => { const colDiv = document.createElement("div"); colDiv.className = "column"; colDiv.innerHTML = <div class="column-head"> <strong>${col.name}</strong> <div> <button onclick="openClientModal('${col.id}')" class="menu-btn">➕</button> <button onclick="toggleMenu('menu-${col.id}', event)" class="menu-btn">⋮</button> </div> <div id="menu-${col.id}" class="menu-list"> <button onclick="renameColumn('${col.id}')">Renommer colonne</button> ${col.id !== "archives" ? <button onclick="deleteColumn('${col.id}')">Supprimer colonne</button> : ""} </div> </div> <div class="cards" id="cards-${col.id}"></div> ; board.appendChild(colDiv); const cardsDiv = document.getElementById(cards-${col.id}); cardsDiv.ondragover = e => e.preventDefault(); cardsDiv.ondrop = e => { const cardId = e.dataTransfer.getData("cid"); const fromColId = e.dataTransfer.getData("fromCol"); moveClient(cardId, col.id, fromColId); }; col.cards.forEach((client, index) => { const typeColor = colorMap[client.work] || "#7f8c8d"; // Statut intervention let status = ""; if (client.intervention && client.intervention.date) { const d = client.intervention.date; if (d === today) status = " today"; else if (d < today) status = " overdue"; } const card = document.createElement("div"); card.className = "card" + status; card.draggable = true; card.innerHTML = <div class="card-type" style="background:${typeColor}"></div> <div>${client.lastname} ${client.firstname}</div> ; card.onclick = () => openSheet(client, col.id, index); card.ondragstart = e => { e.dataTransfer.setData("cid", client.id); e.dataTransfer.setData("fromCol", col.id); }; cardsDiv.appendChild(card); }); }); filterCards(); } /* ===================================================== ➤ FICHE CLIENT (ouvrir / remplir) ===================================================== */ let currentClient = null; function openSheet(client, colId, index) { currentClient = { colId, index }; document.getElementById("sheet-lastname").value = client.lastname; document.getElementById("sheet-firstname").value = client.firstname; document.getElementById("sheet-tel").value = client.tel; document.getElementById("sheet-address").value = client.address; document.getElementById("sheet-email").value = client.email; document.getElementById("sheet-work").value = client.work; document.getElementById("sheet-comment").value = client.comment; const i = client.intervention || {}; document.getElementById("sheet-int-date").value = i.date || ""; document.getElementById("sheet-int-time").value = i.time || ""; document.getElementById("sheet-int-tech").value = i.tech || ""; document.getElementById("sheet-int-note").value = i.note || ""; document.getElementById("restoreBtn").style.display = colId === "archives" ? "inline-block" : "none"; document.getElementById("sheetModal").classList.add("open"); } function closeSheet() { document.getElementById("sheetModal").classList.remove("open"); } /* ===================================================== ➤ ENREGISTRER MODIFICATION + INTERVENTIONS ===================================================== */ function editClient() { if (!currentClient) return; const { colId, index } = currentClient; const col = boardData.columns.find(c => c.id === colId); const c = col.cards[index]; c.lastname = document.getElementById("sheet-lastname").value.trim(); c.firstname = document.getElementById("sheet-firstname").value.trim(); c.tel = document.getElementById("sheet-tel").value.trim(); c.address = document.getElementById("sheet-address").value.trim(); c.email = document.getElementById("sheet-email").value.trim(); c.work = document.getElementById("sheet-work").value; c.comment = document.getElementById("sheet-comment").value.trim(); const d = document.getElementById("sheet-int-date").value; const t = document.getElementById("sheet-int-time").value; const tech = document.getElementById("sheet-int-tech").value.trim(); const note = document.getElementById("sheet-int-note").value.trim(); const hadIntervention = !!(c.intervention && c.intervention.date); if (d || t || tech || note) { c.intervention = { date:d, time:t, tech:tech, note:note }; c.history.push({ action: hadIntervention ? "Intervention mise à jour" : "Intervention planifiée", date: new Date().toLocaleString() }); } else if (hadIntervention) { c.intervention = null; c.history.push({ action: "Intervention supprimée", date: new Date().toLocaleString() }); } c.history.push({ action: "Modification fiche", date: new Date().toLocaleString() }); saveBoard(); renderBoard(); closeSheet(); } /* ===================================================== ➤ ARCHIVER / RESTAURER ===================================================== */ function archiveClient() { if (!currentClient) return; const { colId, index } = currentClient; if (colId === "archives") return; const fromCol = boardData.columns.find(c => c.id === colId); const toCol = boardData.columns.find(c => c.id === "archives"); const client = fromCol.cards[index]; fromCol.cards.splice(index, 1); client.history.push({ action:"Archivage", date:new Date().toLocaleString() }); toCol.cards.push(client); saveBoard(); renderBoard(); closeSheet(); } function restoreClient() { if (!currentClient) return; const { colId, index } = currentClient; if (colId !== "archives") return; const fromCol = boardData.columns.find(c => c.id === colId); const toCol = boardData.columns[0]; const client = fromCol.cards[index]; fromCol.cards.splice(index, 1); client.history.push({ action:"Restauration", date:new Date().toLocaleString() }); toCol.cards.push(client); saveBoard(); renderBoard(); closeSheet(); } /* ===================================================== ➤ TIMELINE HISTORIQUE (PRO) ===================================================== */ function openHistoryModal() { const { colId, index } = currentClient; const col = boardData.columns.find(c => c.id === colId); const c = col.cards[index]; const container = document.getElementById("historyTimeline"); container.innerHTML = buildTimeline(c.history || []); document.getElementById("historyModal").classList.add("open"); } function closeHistoryModal() { document.getElementById("historyModal").classList.remove("open"); } function buildTimeline(history) { const icons = { "Création": "🆕", "Modification fiche": "✏️", "Intervention planifiée": "📅", "Intervention mise à jour": "📅", "Intervention supprimée": "🗑️", "Déplacement": "➡️", "Archivage": "📥", "Restauration": "↩️" }; return history.map(h => <div class="timeline-item"> <div class="timeline-icon">${icons[h.action] || "📁"}</div> <div class="timeline-content"> <div><b>${h.action}</b></div> <div class="timeline-date">${h.date}</div> </div> </div> ).join(""); } /* ===================================================== ➤ MENUS COLONNES ===================================================== */ function toggleMenu(id, event) { event.stopPropagation(); document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open")); document.getElementById(id).classList.add("open"); } document.addEventListener("click", () => { document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open")); }); function renameColumn(colId) { const col = boardData.columns.find(c => c.id === colId); const name = prompt("Nouveau nom :", col.name); if (name) { col.name = name; saveBoard(); renderBoard(); } } function deleteColumn(colId) { if (colId === "archives") return alert("Impossible de supprimer Archives."); if (!confirm("Supprimer cette colonne ?")) return; boardData.columns = boardData.columns.filter(c => c.id !== colId); saveBoard(); renderBoard(); } /* ===================================================== ➤ DRAG & DROP ===================================================== */ function moveClient(clientId, toColId, fromColId) { const fromCol = boardData.columns.find(c => c.id === fromColId); const toCol = boardData.columns.find(c => c.id === toColId); const client = fromCol.cards.find(c => c.id === clientId); fromCol.cards = fromCol.cards.filter(c => c.id !== clientId); client.history.push({ action: "Déplacement", date: new Date().toLocaleString() }); toCol.cards.push(client); saveBoard(); renderBoard(); } /* ===================================================== ➤ RECHERCHE ===================================================== */ function filterCards() { const q = document.getElementById("searchInput").value.toLowerCase(); document.querySelectorAll(".card").forEach(card => { card.style.display = card.innerText.toLowerCase().includes(q) ? "flex" : "none"; }); } /* ================================ ✅ SAUVEGARDE AUTOMATIQUE GOOGLE DRIVE ================================ */ const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzHRSvgoUe05ffCqUgRGTIcUAVXJgpZ04QoJUlE7_eTVtx5ww5icRLDzimkSodX1kLk/exec"; function sauvegardeDrive() { const data = localStorage.getItem("boardData"); console.log("📦 Données envoyées :", data); if (!data) { console.warn("⚠️ Aucun boardData trouvé dans le localStorage"); return; } fetch(DRIVE_URL, { method: "POST", body: data, headers: { "Content-Type": "application/json" } }) .then(res => { console.log("📡 Réponse brute :", res); return res.text(); }) .then(txt => { console.log("✅ Réponse serveur :", txt); }) .catch(err => { console.error("❌ ERREUR FETCH :", err); }); } // Sauvegarde toutes les 5 minutes setInterval(sauvegardeDrive, 300000); /* INIT */ renderBoard(); </script> </body> </html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DTN SmartOps</title>
+<link rel="stylesheet" href="style.css"/>
+
+<style>
+/* --- STYLE TRELLO PRO --- */
+.topbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 20px; background:#1f1f1f; color:white;
+}
+
+.search-box { margin-left:20px; }
+.search-box input {
+  padding:8px 12px; border-radius:8px; border:none; width:220px;
+}
+
+.board-container {
+  display:flex; gap:18px; padding:16px; overflow-x:auto;
+}
+
+/* Colonnes */
+.column {
+  background:#ebecf0;
+  width:270px;
+  padding:10px;
+  border-radius:10px;
+  flex-shrink:0;
+  position:relative;
+}
+
+.column-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+/* Menus colonnes */
+.menu-btn {
+  background:none; border:none; font-size:20px; cursor:pointer; padding:3px;
+}
+
+.menu-list {
+  display:none;
+  position:absolute;
+  right:10px;
+  top:40px;
+  background:white;
+  border-radius:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  padding:6px;
+  z-index:50;
+}
+
+.menu-list.open { display:block; }
+
+.menu-list button {
+  background:none;
+  border:none;
+  padding:6px 10px;
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+  font-size:14px;
+}
+
+/* Cartes */
+.card {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);
+  margin-bottom:8px;
+}
+
+.card:hover { background:#f8f8f8; }
+
+.card-type {
+  width:6px;
+  align-self:stretch;
+  border-radius:4px;
+}
+
+/* Rappel interventions */
+.card.today { background:#fff7e0; }
+.card.overdue { background:#ffe5e5; }
+
+/* Modales */
+.modal {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.5);
+  justify-content:center; align-items:center;
+}
+
+.modal.open { display:flex; }
+
+.modal-card {
+  background:white;
+  padding:18px;
+  border-radius:12px;
+  width:340px;
+  max-height:85vh;
+  overflow-y:auto;
+}
+
+.modal-card label {
+  font-size:13px;
+  font-weight:600;
+  display:block;
+  margin-top:6px;
+}
+
+.modal-card input,
+.modal-card select,
+.modal-card textarea {
+  width:100%;
+  padding:6px 8px;
+  margin-top:3px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+    <img src="logo.png" class="logo" style="height:40px;margin-right:10px"/>
+    <span style="font-size:20px;"><b>DTN</b> SmartOps</span>
+  </div>
+
+  <!-- 🔎 Recherche globale -->
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Rechercher un client…" oninput="filterCards()">
+  </div>
+
+  <div class="actions">
+    <button onclick="openClientModal()" class="btn btn-primary">+ Nouveau client</button>
+    <button onclick="addColumn()" class="btn btn-accent">➕ Colonne</button>
+    <button onclick="saveBoard()" class="btn btn-accent">💾</button>
+  </div>
+
+</header>
+
+
+<main id="kanban-board" class="board-container"></main>
+<!-- =============== MODAL AJOUT CLIENT =============== -->
+<div id="clientModal" class="modal">
+  <div class="modal-card">
+    <h3>Nouveau client</h3>
+    <form onsubmit="createClient(event)">
+      <label>Nom
+        <input id="lastname" placeholder="Nom" required/>
+      </label>
+      <label>Prénom
+        <input id="firstname" placeholder="Prénom" required/>
+      </label>
+      <label>Téléphone
+        <input id="tel" placeholder="Téléphone"/>
+      </label>
+      <label>Adresse
+        <input id="address" placeholder="Adresse"/>
+      </label>
+      <label>Email
+        <input id="email" placeholder="Email"/>
+      </label>
+
+      <label>Type de chantier
+        <select id="work">
+          <option value="Fibre / Télécom">Fibre / Télécom</option>
+          <option value="Électricité">Électricité</option>
+          <option value="IRVE">IRVE</option>
+          <option value="Photovoltaïque">Photovoltaïque</option>
+          <option value="Terrassement">Terrassement</option>
+          <option value="Détection réseaux">Détection réseaux</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </label>
+
+      <label>Commentaire
+        <textarea id="comment" placeholder="Commentaire" rows="3"></textarea>
+      </label>
+
+      <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" onclick="closeClientModal()" class="btn">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- =============== MODAL FICHE CLIENT =============== -->
+<div id="sheetModal" class="modal">
+  <div class="modal-card" style="width:380px;">
+    <h3>Fiche client</h3>
+
+    <label>Nom
+      <input id="sheet-lastname"/>
+    </label>
+    <label>Prénom
+      <input id="sheet-firstname"/>
+    </label>
+    <label>Téléphone
+      <input id="sheet-tel"/>
+    </label>
+    <label>Adresse
+      <input id="sheet-address"/>
+    </label>
+    <label>Email
+      <input id="sheet-email"/>
+    </label>
+
+    <label>Type de chantier
+      <select id="sheet-work">
+        <option value="Fibre / Télécom">Fibre / Télécom</option>
+        <option value="Électricité">Électricité</option>
+        <option value="IRVE">IRVE</option>
+        <option value="Photovoltaïque">Photovoltaïque</option>
+        <option value="Terrassement">Terrassement</option>
+        <option value="Détection réseaux">Détection réseaux</option>
+        <option value="Autres">Autres</option>
+      </select>
+    </label>
+
+    <label>Commentaire
+      <textarea id="sheet-comment" rows="3"></textarea>
+    </label>
+
+    <h4 style="margin-top:10px;">Intervention planifiée</h4>
+
+    <label>Date
+      <input type="date" id="sheet-int-date"/>
+    </label>
+    <label>Heure
+      <input type="time" id="sheet-int-time"/>
+    </label>
+    <label>Technicien
+      <input id="sheet-int-tech" placeholder="Nom du technicien"/>
+    </label>
+    <label>Note intervention
+      <textarea id="sheet-int-note" rows="2"></textarea>
+    </label>
+
+    <!-- 🔘 Bouton pour ouvrir l'historique complet -->
+    <button onclick="openHistoryModal()" class="btn btn-primary" style="margin-top:10px;width:100%;">
+      📜 Historique complet
+    </button>
+
+    <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
+      <button onclick="editClient()" class="btn btn-primary" style="flex:1">💾 Enregistrer</button>
+      <button onclick="archiveClient()" class="btn btn-accent" style="flex:1">📥 Archiver</button>
+      <button onclick="restoreClient()" class="btn btn-primary" style="flex:1;display:none" id="restoreBtn">↩ Restaurer</button>
+    </div>
+
+    <button onclick="closeSheet()" class="btn close-btn" style="margin-top:12px;width:100%">Fermer</button>
+  </div>
+</div>
+
+
+<!-- =============== MODAL HISTORIQUE COMPLET =============== -->
+<div id="historyModal" class="modal">
+  <div class="modal-card" style="width:420px;">
+    <h3>Historique complet</h3>
+
+    <div id="historyTimeline" style="margin-top:10px;">
+      <!-- Timeline insérée ici par JS -->
+    </div>
+
+    <button onclick="closeHistoryModal()" class="btn" style="margin-top:15px;width:100%;">
+      Fermer
+    </button>
+  </div>
+</div>
+
+
+<style>
+.timeline-item {
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.timeline-icon {
+  font-size:20px;
+  width:30px;
+  text-align:center;
+}
+
+.timeline-content {
+  background:#f5f5f5;
+  padding:10px 12px;
+  border-radius:6px;
+  flex:1;
+  font-size:14px;
+}
+
+.timeline-date {
+  font-size:12px;
+  color:#777;
+  margin-top:4px;
+}
+</style>
+
+
+<script>
+/* =====================================================
+   ➤ INITIALISATION BOARD + ARCHIVES
+===================================================== */
+
+let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
+
+if (!boardData) {
+  boardData = {
+    columns: [
+      { id:"col-1", name:"À faire", cards:[] },
+      { id:"col-2", name:"En cours", cards:[] },
+      { id:"col-3", name:"Terminé", cards:[] },
+      { id:"archives", name:"Archives", cards:[] }
+    ]
+  };
+  saveBoard();
+}
+
+function saveBoard() {
+  localStorage.setItem("boardData", JSON.stringify(boardData));
+}
+
+/* Date du jour au format YYYY-MM-DD */
+function getTodayYMD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+
+/* =====================================================
+   ➤ AJOUT COLONNE
+===================================================== */
+
+function addColumn() {
+  const name = prompt("Nom de la colonne ?");
+  if (!name) return;
+
+  boardData.columns.splice(boardData.columns.length - 1, 0, {
+    id: "col-"+Date.now(),
+    name,
+    cards:[]
+  });
+
+  saveBoard();
+  renderBoard();
+}
+
+
+/* =====================================================
+   ➤ MODALE AJOUT CLIENT
+===================================================== */
+
+function openClientModal(columnId = null) {
+  window.newClientTargetColumn = columnId;
+  document.getElementById("clientModal").classList.add("open");
+}
+
+function closeClientModal() {
+  document.getElementById("clientModal").classList.remove("open");
+}
+
+function createClient(e) {
+  e.preventDefault();
+
+  const colId = window.newClientTargetColumn || boardData.columns[0].id;
+  const col = boardData.columns.find(c => c.id === colId);
+
+  const client = {
+    id: Date.now().toString(),
+    lastname: document.getElementById("lastname").value.trim(),
+    firstname: document.getElementById("firstname").value.trim(),
+    tel: document.getElementById("tel").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    work: document.getElementById("work").value,
+    comment: document.getElementById("comment").value.trim(),
+    intervention: null,
+    history: [
+      { action:"Création", date:new Date().toLocaleString() }
+    ]
+  };
+
+  col.cards.push(client);
+
+  saveBoard();
+  closeClientModal();
+  renderBoard();
+  e.target.reset();
+}
+/* =====================================================
+   ➤ AFFICHAGE BOARD (cartes + couleurs + rappels)
+===================================================== */
+
+function renderBoard() {
+  const board = document.getElementById("kanban-board");
+  board.innerHTML = "";
+
+  const colorMap = {
+    "Fibre / Télécom": "#007bff",
+    "Électricité": "#8e44ad",
+    "IRVE": "#27ae60",
+    "Photovoltaïque": "#f1c40f",
+    "Terrassement": "#e74c3c",
+    "Détection réseaux": "#e67e22",
+    "Autres": "#7f8c8d"
+  };
+
+  const today = getTodayYMD();
+
+  boardData.columns.forEach((col) => {
+
+    const colDiv = document.createElement("div");
+    colDiv.className = "column";
+
+    colDiv.innerHTML = `
+      <div class="column-head">
+        <strong>${col.name}</strong>
+        <div>
+          <button onclick="openClientModal('${col.id}')" class="menu-btn">➕</button>
+          <button onclick="toggleMenu('menu-${col.id}', event)" class="menu-btn">⋮</button>
+        </div>
+
+        <div id="menu-${col.id}" class="menu-list">
+          <button onclick="renameColumn('${col.id}')">Renommer colonne</button>
+          ${col.id !== "archives" ? `<button onclick="deleteColumn('${col.id}')">Supprimer colonne</button>` : ""}
+        </div>
+      </div>
+
+      <div class="cards" id="cards-${col.id}"></div>
+    `;
+
+    board.appendChild(colDiv);
+
+    const cardsDiv = document.getElementById(`cards-${col.id}`);
+
+    cardsDiv.ondragover = e => e.preventDefault();
+    cardsDiv.ondrop = e => {
+      const cardId = e.dataTransfer.getData("cid");
+      const fromColId = e.dataTransfer.getData("fromCol");
+      moveClient(cardId, col.id, fromColId);
+    };
+
+    col.cards.forEach((client, index) => {
+      const typeColor = colorMap[client.work] || "#7f8c8d";
+
+      // Statut intervention
+      let status = "";
+      if (client.intervention && client.intervention.date) {
+        const d = client.intervention.date;
+        if (d === today) status = " today";
+        else if (d < today) status = " overdue";
+      }
+
+      const card = document.createElement("div");
+      card.className = "card" + status;
+      card.draggable = true;
+
+      card.innerHTML = `
+        <div class="card-type" style="background:${typeColor}"></div>
+        <div>${client.lastname} ${client.firstname}</div>
+      `;
+
+      card.onclick = () => openSheet(client, col.id, index);
+
+      card.ondragstart = e => {
+        e.dataTransfer.setData("cid", client.id);
+        e.dataTransfer.setData("fromCol", col.id);
+      };
+
+      cardsDiv.appendChild(card);
+    });
+  });
+
+  filterCards();
+}
+
+
+/* =====================================================
+   ➤ FICHE CLIENT (ouvrir / remplir)
+===================================================== */
+
+let currentClient = null;
+
+function openSheet(client, colId, index) {
+  currentClient = { colId, index };
+
+  document.getElementById("sheet-lastname").value  = client.lastname;
+  document.getElementById("sheet-firstname").value = client.firstname;
+  document.getElementById("sheet-tel").value       = client.tel;
+  document.getElementById("sheet-address").value   = client.address;
+  document.getElementById("sheet-email").value     = client.email;
+  document.getElementById("sheet-work").value      = client.work;
+  document.getElementById("sheet-comment").value   = client.comment;
+
+  const i = client.intervention || {};
+  document.getElementById("sheet-int-date").value = i.date || "";
+  document.getElementById("sheet-int-time").value = i.time || "";
+  document.getElementById("sheet-int-tech").value = i.tech || "";
+  document.getElementById("sheet-int-note").value = i.note || "";
+
+  document.getElementById("restoreBtn").style.display =
+    colId === "archives" ? "inline-block" : "none";
+
+  document.getElementById("sheetModal").classList.add("open");
+}
+
+function closeSheet() {
+  document.getElementById("sheetModal").classList.remove("open");
+}
+
+
+/* =====================================================
+   ➤ ENREGISTRER MODIFICATION + INTERVENTIONS
+===================================================== */
+
+function editClient() {
+  if (!currentClient) return;
+
+  const { colId, index } = currentClient;
+  const col = boardData.columns.find(c => c.id === colId);
+  const c = col.cards[index];
+
+  c.lastname  = document.getElementById("sheet-lastname").value.trim();
+  c.firstname = document.getElementById("sheet-firstname").value.trim();
+  c.tel       = document.getElementById("sheet-tel").value.trim();
+  c.address   = document.getElementById("sheet-address").value.trim();
+  c.email     = document.getElementById("sheet-email").value.trim();
+  c.work      = document.getElementById("sheet-work").value;
+  c.comment   = document.getElementById("sheet-comment").value.trim();
+
+  const d = document.getElementById("sheet-int-date").value;
+  const t = document.getElementById("sheet-int-time").value;
+  const tech = document.getElementById("sheet-int-tech").value.trim();
+  const note = document.getElementById("sheet-int-note").value.trim();
+
+  const hadIntervention = !!(c.intervention && c.intervention.date);
+
+  if (d || t || tech || note) {
+    c.intervention = { date:d, time:t, tech:tech, note:note };
+    c.history.push({
+      action: hadIntervention ? "Intervention mise à jour" : "Intervention planifiée",
+      date: new Date().toLocaleString()
+    });
+  } else if (hadIntervention) {
+    c.intervention = null;
+    c.history.push({
+      action: "Intervention supprimée",
+      date: new Date().toLocaleString()
+    });
+  }
+
+  c.history.push({
+    action: "Modification fiche",
+    date: new Date().toLocaleString()
+  });
+
+  saveBoard();
+  renderBoard();
+  closeSheet();
+}
+
+
+/* =====================================================
+   ➤ ARCHIVER / RESTAURER
+===================================================== */
+
+function archiveClient() {
+  if (!currentClient) return;
+  const { colId, index } = currentClient;
+
+  if (colId === "archives") return;
+
+  const fromCol = boardData.columns.find(c => c.id === colId);
+  const toCol = boardData.columns.find(c => c.id === "archives");
+
+  const client = fromCol.cards[index];
+  fromCol.cards.splice(index, 1);
+
+  client.history.push({ action:"Archivage", date:new Date().toLocaleString() });
+
+  toCol.cards.push(client);
+
+  saveBoard();
+  renderBoard();
+  closeSheet();
+}
+
+function restoreClient() {
+  if (!currentClient) return;
+  const { colId, index } = currentClient;
+  if (colId !== "archives") return;
+
+  const fromCol = boardData.columns.find(c => c.id === colId);
+  const toCol = boardData.columns[0];
+
+  const client = fromCol.cards[index];
+  fromCol.cards.splice(index, 1);
+
+  client.history.push({ action:"Restauration", date:new Date().toLocaleString() });
+
+  toCol.cards.push(client);
+
+  saveBoard();
+  renderBoard();
+  closeSheet();
+}
+
+
+/* =====================================================
+   ➤ TIMELINE HISTORIQUE (PRO)
+===================================================== */
+
+function openHistoryModal() {
+  const { colId, index } = currentClient;
+  const col = boardData.columns.find(c => c.id === colId);
+  const c = col.cards[index];
+
+  const container = document.getElementById("historyTimeline");
+  container.innerHTML = buildTimeline(c.history || []);
+
+  document.getElementById("historyModal").classList.add("open");
+}
+
+function closeHistoryModal() {
+  document.getElementById("historyModal").classList.remove("open");
+}
+
+function buildTimeline(history) {
+
+  const icons = {
+    "Création": "🆕",
+    "Modification fiche": "✏️",
+    "Intervention planifiée": "📅",
+    "Intervention mise à jour": "📅",
+    "Intervention supprimée": "🗑️",
+    "Déplacement": "➡️",
+    "Archivage": "📥",
+    "Restauration": "↩️"
+  };
+
+  return history.map(h => `
+    <div class="timeline-item">
+      <div class="timeline-icon">${icons[h.action] || "📁"}</div>
+      <div class="timeline-content">
+        <div><b>${h.action}</b></div>
+        <div class="timeline-date">${h.date}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+
+/* =====================================================
+   ➤ MENUS COLONNES
+===================================================== */
+
+function toggleMenu(id, event) {
+  event.stopPropagation();
+  document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open"));
+  document.getElementById(id).classList.add("open");
+}
+
+document.addEventListener("click", () => {
+  document.querySelectorAll(".menu-list").forEach(m => m.classList.remove("open"));
+});
+
+function renameColumn(colId) {
+  const col = boardData.columns.find(c => c.id === colId);
+  const name = prompt("Nouveau nom :", col.name);
+  if (name) {
+    col.name = name;
+    saveBoard();
+    renderBoard();
+  }
+}
+
+function deleteColumn(colId) {
+  if (colId === "archives") return alert("Impossible de supprimer Archives.");
+  if (!confirm("Supprimer cette colonne ?")) return;
+  boardData.columns = boardData.columns.filter(c => c.id !== colId);
+  saveBoard();
+  renderBoard();
+}
+
+
+/* =====================================================
+   ➤ DRAG & DROP
+===================================================== */
+
+function moveClient(clientId, toColId, fromColId) {
+  const fromCol = boardData.columns.find(c => c.id === fromColId);
+  const toCol = boardData.columns.find(c => c.id === toColId);
+
+  const client = fromCol.cards.find(c => c.id === clientId);
+  fromCol.cards = fromCol.cards.filter(c => c.id !== clientId);
+
+  client.history.push({
+    action: "Déplacement",
+    date: new Date().toLocaleString()
+  });
+
+  toCol.cards.push(client);
+
+  saveBoard();
+  renderBoard();
+}
+
+
+/* =====================================================
+   ➤ RECHERCHE
+===================================================== */
+
+function filterCards() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+
+  document.querySelectorAll(".card").forEach(card => {
+    card.style.display =
+      card.innerText.toLowerCase().includes(q) ? "flex" : "none";
+  });
+}
+
+
+/* INIT */
+renderBoard();
+</script>
+
+</body>
+</html>
