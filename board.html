@@ -830,6 +830,40 @@ function renderPlanning() {
 
   container.innerHTML = found ? html : "<i>Aucune intervention ce jour</i>";
 }
+function renderPlanningWeek() {
+  const container = document.getElementById("planningList");
+  let html = "";
+  const today = new Date();
+
+  for (let d = 0; d < 7; d++) {
+    const date = new Date();
+    date.setDate(today.getDate() + d);
+    const ymd = date.toISOString().split("T")[0];
+
+    html += `<h4 style="margin-top:10px;">📆 ${ymd}</h4>`;
+
+    let found = false;
+
+    boardData.columns.forEach(col => {
+      col.cards.forEach(client => {
+        if (!client.intervention || client.intervention.date !== ymd) return;
+
+        found = true;
+
+        html += `
+          <div style="padding:8px;margin:6px 0;border-radius:6px;background:#f5f5f5;">
+            <b>${client.lastname} ${client.firstname}</b>
+            <br>🕒 ${client.intervention.time || "--"} | 👷 ${client.intervention.tech || "Non défini"}
+          </div>
+        `;
+      });
+    });
+
+    if (!found) html += `<i>Aucune intervention</i>`;
+  }
+
+  container.innerHTML = html;
+}
 
 function openPlanningClient(colId, clientId) {
   const col = boardData.columns.find(c => c.id === colId);
@@ -850,6 +884,11 @@ renderBoard();
   <div class="modal-card" style="width:520px;">
     <h3>📅 Planning des interventions</h3>
 
+<div style="display:flex;gap:8px;margin-bottom:10px;">
+  <button class="btn" onclick="renderPlanning()">Jour</button>
+  <button class="btn" onclick="renderPlanningWeek()">Semaine</button>
+</div>
+    
     <label>Date
       <input type="date" id="planningDate" onchange="renderPlanning()">
     </label>
@@ -869,6 +908,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
