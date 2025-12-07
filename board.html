@@ -321,7 +321,7 @@
 /* =====================================================
    ➤ INITIALISATION BOARD + ARCHIVES
 ===================================================== */
-const DRIVE_URL = "https://script.google.com/macros/s/AKfycby_ym0i6QSEyQJ5U-UajLfmkM0IAW2tJsw7U5KmXr7q-mdOxZANIbi1LWiEbFbjbGZN/exec";
+const DRIVE_URL = "https://script.google.com/macros/s/AKfycbzfxGzI027jvJgjK_HQ7ggnyW9Y53PSGjDiS3k1490tF42eD_DKqHcds2vUHrmTGuOD/exec";
 
 let boardData = JSON.parse(localStorage.getItem("boardData") || "null");
 
@@ -775,10 +775,7 @@ function sauvegardeDrive() {
 
   fetch(DRIVE_URL, {
     method: "POST",
-    body: data,
-    headers: {
-      "Content-Type": "application/json"
-    }
+    body: data          // ❌ pas de headers → pas de preflight CORS
   })
   .then(res => {
     console.log("📡 Réponse brute :", res);
@@ -791,6 +788,7 @@ function sauvegardeDrive() {
     console.error("❌ ERREUR FETCH :", err);
   });
 }
+
 
 // Sauvegarde toutes les 5 minutes
 setInterval(() => {
@@ -928,6 +926,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
