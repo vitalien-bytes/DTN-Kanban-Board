@@ -356,7 +356,9 @@ if (!boardData) {
 
 function saveBoard() {
   localStorage.setItem("boardData", JSON.stringify(boardData));
+  sauvegardeDrive();   // <<< 🔥 ajoute ceci
 }
+
 
 /* Date du jour au format YYYY-MM-DD */
 function getTodayYMD() {
@@ -926,6 +928,7 @@ renderBoard();
 
 </body>
 </html>
+
 
 
 
