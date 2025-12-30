@@ -28,6 +28,7 @@ const modal = document.getElementById("modal");
 const m_lastname = document.getElementById("m_lastname");
 const m_firstname = document.getElementById("m_firstname");
 const m_tel = document.getElementById("m_tel");
+const m_email = document.getElementById("m_email");
 const m_address = document.getElementById("m_address");
 const m_date = document.getElementById("m_date");
 const m_work = document.getElementById("m_work");
@@ -263,6 +264,7 @@ function openModal(card=null, colId=null) {
   m_lastname.value = card?.lastname || "";
   m_firstname.value = card?.firstname || "";
   m_tel.value = card?.tel || "";
+  m_email.value = card?.email || "";
   m_address.value = card?.address || "";
   m_date.value = card?.date || "";
   m_work.value = card?.work || "Électricité";
@@ -286,6 +288,7 @@ const data = {
   lastname: (m_lastname.value || "").trim(),
   firstname: (m_firstname.value || "").trim(),
   tel: (m_tel.value || "").trim(),
+  email: (m_email.value || "").trim(),
   address: (m_address.value || "").trim(),
   date: (m_date.value || "").trim(),
   work: (m_work.value || "").trim(),
