@@ -149,20 +149,22 @@ div.ondragend = () => {
 };
 
 
-  div.innerHTML = `
-    <div class="name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
-    <div class="meta">
-      ${card.city ? `<span class="chip">📍 ${escapeHtml(card.city)}</span>` : ""}
-      ${card.work ? `<span class="chip">🛠 ${escapeHtml(card.work)}</span>` : ""}
-      ${card.tel ? `<span class="chip">📞 ${escapeHtml(card.tel)}</span>` : ""}
-    </div>
-    ${card.note ? `<div class="note">${escapeHtml(card.note)}</div>` : ""}
-    <div class="card-actions">
-  <button class="icon" data-action="edit" title="Modifier">✎</button>
-  <button class="icon" data-action="history" title="Historique">📜</button>
-  <button class="icon" data-action="archive" title="Archiver">🗄</button>
-  <button class="icon" data-action="delete" title="Supprimer">🗑</button>
-</div>
+div.innerHTML = `
+  <div class="name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
+  <div class="meta">
+    ${card.city ? `<span class="chip">📍 ${escapeHtml(card.city)}</span>` : ""}
+    ${card.work ? `<span class="chip">🛠 ${escapeHtml(card.work)}</span>` : ""}
+    ${card.tel ? `<span class="chip">📞 ${escapeHtml(card.tel)}</span>` : ""}
+  </div>
+  ${card.note ? `<div class="note">${escapeHtml(card.note)}</div>` : ""}
+  <div class="card-actions">
+    <button class="icon" data-action="edit" title="Modifier">✎</button>
+    <button class="icon" data-action="history" title="Historique">📜</button>
+    <button class="icon" data-action="archive" title="Archiver">🗄</button>
+    <button class="icon" data-action="delete" title="Supprimer">🗑</button>
+  </div>
+`;
+
 
   `;
 
