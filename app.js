@@ -73,6 +73,22 @@ function render() {
     const colEl = document.createElement("div");
     colEl.className = "column";
     colEl.dataset.col = col.id;
+    // 🔒 FIX drag & drop : binding immédiat et fiable
+colEl.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  colEl.classList.add("drag-over");
+});
+
+colEl.addEventListener("dragleave", () => {
+  colEl.classList.remove("drag-over");
+});
+
+colEl.addEventListener("drop", (e) => {
+  e.preventDefault();
+  colEl.classList.remove("drag-over");
+  onDrop(e, col.id);
+});
+
 
     colEl.innerHTML = `
       <div class="col-head">
