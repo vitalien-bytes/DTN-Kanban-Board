@@ -134,7 +134,13 @@ cardsEl.ondrop = (e) => {
 
 function renderCard(colId, card) {
   const div = document.createElement("div");
-  div.className = `card work-${(card.work || "autre").toLowerCase().replace(/[^a-z]/g, "")}`;
+  const workClass =
+  `work-${(card.work || "autre").toLowerCase().replace(/[^a-z]/g, "")}`;
+
+const overdueClass = isOverdue(card.date) ? "is-overdue" : "";
+
+div.className = `card ${workClass} ${overdueClass}`;
+
   div.draggable = true;
   div.dataset.card = card.id;
 
@@ -338,6 +344,16 @@ function escapeHtml(s) {
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
+}
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isOverdue(dateStr) {
+  if (!dateStr) return false;          // pas de date = pas de retard
+  const due = new Date(dateStr);       // ex: 2026-01-02
+  if (isNaN(due)) return false;
+  return startOfDay(due) < startOfDay(new Date());
 }
 
 /* -------------------- Drive Sync (MANUEL + SAFE) -------------------- */
