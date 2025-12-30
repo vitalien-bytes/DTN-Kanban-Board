@@ -168,6 +168,12 @@ div.innerHTML = `
 
     ${card.work ? `<span class="chip">🛠 ${escapeHtml(card.work)}</span>` : ""}
     ${card.tel ? `<span class="chip">📞 ${escapeHtml(card.tel)}</span>` : ""}
+    ${card.email ? `
+  <a class="chip chip-link"
+     href="mailto:${escapeHtml(card.email)}">
+     ✉ ${escapeHtml(card.email)}
+  </a>` : ""}
+
   </div>
   ${card.note ? `<div class="note">${escapeHtml(card.note)}</div>` : ""}
   <div class="card-actions">
