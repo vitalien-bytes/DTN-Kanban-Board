@@ -50,4 +50,21 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;backgrou
 .card.dragging {
   opacity: 0.4;
 }
+/* ===== Planning ===== */
+.planning-bar{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  padding:12px 14px; border-bottom:1px solid #222;
+}
+.pl-label{display:flex; align-items:center; gap:8px; color:#cfcfcf; font-size:13px}
+.planning-list{padding:14px; display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto}
+.pl-item{
+  border:1px solid #2a2a2a; background:#0f0f0f; border-radius:14px; padding:10px;
+  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+}
+.pl-left{display:flex; flex-direction:column; gap:4px}
+.pl-name{font-weight:900}
+.pl-sub{color:#cfcfcf; font-size:13px}
+.pl-date{font-weight:800; white-space:nowrap}
+.pl-badge{font-size:12px; border:1px solid #2a2a2a; padding:3px 8px; border-radius:999px; color:#d7d7d7; display:inline-block; margin-top:6px}
+
 
