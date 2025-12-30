@@ -161,6 +161,8 @@ div.ondragend = () => {
       <button class="icon" title="Modifier">✎</button>
       <button class="icon" title="Archiver">🗄</button>
       <button class="icon" title="Supprimer">🗑</button>
+      <button class="icon" title="Historique">📜</button>
+
     </div>
   `;
 
@@ -171,6 +173,19 @@ div.ondragend = () => {
 
   return div;
 }
+function showHistory(card) {
+  if (!card.history || card.history.length === 0) {
+    alert("Aucun historique pour ce client.");
+    return;
+  }
+
+  const text = card.history
+    .map(h => `• ${h.date}\n  ${h.action} : ${h.details}`)
+    .join("\n\n");
+
+  alert(`Historique client :\n\n${text}`);
+}
+
 
 function onDrop(e, toCol) {
   const cardId = e.dataTransfer.getData("cardId");
@@ -183,9 +198,22 @@ function onDrop(e, toCol) {
 
   const idx = src.cards.findIndex(x => x.id === cardId);
   if (idx < 0) return;
-  const [card] = src.cards.splice(idx, 1);
-  dst.cards.unshift(card);
-  render();
+ const [card] = src.cards.splice(idx, 1);
+
+const fromName = src.name;
+const toName = dst.name;
+const now = new Date().toLocaleString("fr-FR");
+
+card.history = card.history || [];
+card.history.unshift({
+  date: now,
+  action: "Déplacement",
+  details: `${fromName} → ${toName}`
+});
+
+dst.cards.unshift(card);
+render();
+
 }
 
 function columnMenu(colId) {
@@ -235,17 +263,27 @@ function closeModal() {
 }
 
 function saveModal() {
-  const data = {
-    id: editingCard?.id || uid(),
-    lastname: (m_lastname.value || "").trim(),
-    firstname: (m_firstname.value || "").trim(),
-    tel: (m_tel.value || "").trim(),
-    city: (m_city.value || "").trim(),
-    work: (m_work.value || "").trim(),
-    note: (m_note.value || "").trim(),
-    updatedAt: new Date().toISOString(),
-    createdAt: editingCard?.createdAt || new Date().toISOString()
-  };
+  const now = new Date().toLocaleString("fr-FR");
+
+const data = {
+  id: editingCard?.id || uid(),
+  lastname: (m_lastname.value || "").trim(),
+  firstname: (m_firstname.value || "").trim(),
+  tel: (m_tel.value || "").trim(),
+  city: (m_city.value || "").trim(),
+  work: (m_work.value || "").trim(),
+  note: (m_note.value || "").trim(),
+  history: editingCard?.history || [
+    {
+      date: now,
+      action: "Création",
+      details: "Client créé"
+    }
+  ],
+  updatedAt: now,
+  createdAt: editingCard?.createdAt || now
+};
+
 
   const targetColId = m_col.value;
   const targetCol = state.columns.find(c => c.id === targetColId);
