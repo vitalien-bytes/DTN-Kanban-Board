@@ -153,7 +153,12 @@ div.ondragend = () => {
 div.innerHTML = `
   <div class="name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
   <div class="meta">
-    ${card.address ? `<span class="chip">📍 ${escapeHtml(card.address)}</span>` : ""}
+    ${card.address ? `
+  <a class="chip chip-link" target="_blank" rel="noopener"
+     href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(card.address)}">
+     📍 ${escapeHtml(card.address)}
+  </a>` : ""}
+
     ${card.work ? `<span class="chip">🛠 ${escapeHtml(card.work)}</span>` : ""}
     ${card.tel ? `<span class="chip">📞 ${escapeHtml(card.tel)}</span>` : ""}
   </div>
