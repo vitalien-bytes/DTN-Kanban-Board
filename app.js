@@ -345,10 +345,10 @@ async function driveRead() {
 
   setStatus("Chargement depuis Drive…");
   const res = await fetch(DRIVE_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "read" })
-  });
+  method: "POST",
+  body: JSON.stringify({ action: "read" })
+});
+
 
   const json = await res.json().catch(() => null);
   if (!json?.ok) {
@@ -387,10 +387,10 @@ async function driveWrite(force=false) {
 
   setStatus("Sauvegarde sur Drive… (backup auto)");
   const res = await fetch(DRIVE_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "write", data: state, force })
-  });
+  method: "POST",
+  body: JSON.stringify({ action: "write", data: state, force })
+});
+
 
   const json = await res.json().catch(() => null);
   if (!json?.ok) {
