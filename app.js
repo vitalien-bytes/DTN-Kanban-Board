@@ -452,6 +452,13 @@ document.getElementById("fileImport").addEventListener("change", (e) => {
 document.getElementById("btnLoadDrive").onclick = driveRead;
 document.getElementById("btnSaveDrive").onclick = () => driveWrite(false);
 
+document.getElementById("btnPlanning").onclick = openPlanning;
+document.getElementById("closePlanning").onclick = closePlanning;
+document.getElementById("plToday").onclick = () => renderPlanning(0, 0);
+document.getElementById("plWeek").onclick = () => renderPlanning(0, 7);
+document.getElementById("plFilter").onchange = () => renderPlanning(0, 7);
+
+
 document.getElementById("closeModal").onclick = closeModal;
 document.getElementById("btnCancel").onclick = closeModal;
 document.getElementById("btnSave").onclick = saveModal;
