@@ -86,8 +86,20 @@ function render() {
     kebab.onclick = () => columnMenu(col.id);
 
     const cardsEl = colEl.querySelector(".cards");
-    cardsEl.ondragover = (e) => e.preventDefault();
-    cardsEl.ondrop = (e) => onDrop(e, col.id);
+    cardsEl.ondragover = (e) => {
+  e.preventDefault();
+  colEl.classList.add("drag-over");
+};
+
+cardsEl.ondragleave = () => {
+  colEl.classList.remove("drag-over");
+};
+
+cardsEl.ondrop = (e) => {
+  colEl.classList.remove("drag-over");
+  onDrop(e, col.id);
+};
+
 
     col.cards
       .filter(card => {
