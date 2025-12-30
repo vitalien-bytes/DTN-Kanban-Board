@@ -26,6 +26,8 @@
       <span class="sep"></span>
       <button class="btn primary" id="btnLoadDrive">Charger Drive</button>
       <button class="btn primary" id="btnSaveDrive">Sauver Drive</button>
+      <button class="btn" id="btnPlanning">Planning</button>
+
     </div>
   </header>
 
@@ -73,7 +75,33 @@
       </div>
     </div>
   </div>
+<!-- Modal Planning -->
+<div class="modal" id="planningModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Planning interventions</h3>
+      <button class="icon" id="closePlanning">✕</button>
+    </div>
+
+    <div class="planning-bar">
+      <button class="btn" id="plToday">Aujourd’hui</button>
+      <button class="btn" id="plWeek">7 jours</button>
+      <span class="sep"></span>
+      <label class="pl-label">Filtrer :
+        <select id="plFilter">
+          <option value="all">Toutes</option>
+          <option value="todo">À faire</option>
+          <option value="doing">En cours</option>
+          <option value="done">Terminé</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="planning-list" id="planningList"></div>
+  </div>
+</div>
 
   <script src="app.js"></script>
 </body>
 </html>
+
