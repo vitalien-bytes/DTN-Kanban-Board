@@ -159,6 +159,8 @@ div.innerHTML = `
   </div>
   ${card.note ? `<div class="note">${escapeHtml(card.note)}</div>` : ""}
   <div class="card-actions">
+  ${card.date ? `<span class="chip">📅 ${escapeHtml(card.date)}</span>` : ""}
+
     <button class="icon" data-action="edit" title="Modifier">✎</button>
     <button class="icon" data-action="history" title="Historique">📜</button>
     <button class="icon" data-action="archive" title="Archiver">🗄</button>
@@ -429,6 +431,88 @@ function importJSONFile(file) {
     }
   };
   r.readAsText(file);
+}
+/* -------------------- PLANNING -------------------- */
+
+const planningModal = document.getElementById("planningModal");
+const planningList = document.getElementById("planningList");
+const plFilterEl = document.getElementById("plFilter");
+
+function openPlanning() {
+  if (!planningModal) {
+    alert("⚠️ planningModal introuvable dans board.html (id='planningModal').");
+    return;
+  }
+  planningModal.style.display = "flex";
+  renderPlanning(0, 7);
+}
+
+function closePlanning() {
+  if (!planningModal) return;
+  planningModal.style.display = "none";
+}
+
+function colToFilter(colName){
+  const n = (colName||"").toLowerCase();
+  if (n.includes("faire")) return "todo";
+  if (n.includes("cours")) return "doing";
+  if (n.includes("termin")) return "done";
+  return "all";
+}
+
+function inRange(dateStr, fromDays, toDays){
+  if(!dateStr) return false;
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const from = new Date(today); from.setDate(today.getDate() + fromDays);
+  const to = new Date(today);   to.setDate(today.getDate() + toDays);
+
+  return d >= from && d <= to;
+}
+
+function renderPlanning(fromDays, toDays) {
+  if (!planningList) return;
+
+  const filter = plFilterEl?.value || "all";
+
+  const items = [];
+  state.columns.forEach(col => {
+    (col.cards || []).forEach(card => {
+      if (!card.date) return;
+      if (!inRange(card.date, fromDays, toDays)) return;
+      if (filter !== "all" && colToFilter(col.name) !== filter) return;
+      items.push({ card, col });
+    });
+  });
+
+  items.sort((a,b) => (a.card.date || "").localeCompare(b.card.date || ""));
+
+  planningList.innerHTML = "";
+
+  if(items.length === 0){
+    planningList.innerHTML = `<div style="color:#cfcfcf">Aucune intervention planifiée sur la période.</div>`;
+    return;
+  }
+
+  items.forEach(({card, col}) => {
+    const div = document.createElement("div");
+    div.className = "pl-item";
+    div.innerHTML = `
+      <div class="pl-left">
+        <div class="pl-name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
+        <div class="pl-sub">${card.city ? "📍 "+escapeHtml(card.city)+" — " : ""}${card.work ? "🛠 "+escapeHtml(card.work) : ""}</div>
+        <span class="pl-badge">${escapeHtml(col.name)}</span>
+      </div>
+      <div class="pl-date">📅 ${escapeHtml(card.date)}</div>
+    `;
+    div.style.cursor = "pointer";
+    div.onclick = () => { closePlanning(); openModal(card, col.id); };
+    planningList.appendChild(div);
+  });
 }
 
 /* -------------------- UI bindings -------------------- */
