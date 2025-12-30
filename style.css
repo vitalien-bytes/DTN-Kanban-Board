@@ -83,6 +83,10 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;backgrou
 /* sécurité */
 .work-autre { border-left: 4px solid #607d8b; }
 
+.card.is-overdue{
+  box-shadow: 0 0 0 2px rgba(255,80,80,.75), 0 12px 30px rgba(255,0,0,.25);
+}
+
 
 
 
