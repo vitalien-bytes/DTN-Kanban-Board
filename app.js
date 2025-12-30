@@ -165,15 +165,14 @@ div.innerHTML = `
   </div>
 `;
 
+// ✅ handlers hors du template
+div.querySelector('[data-action="edit"]').onclick = () => openModal(card, colId);
+div.querySelector('[data-action="history"]').onclick = () => showHistory(card);
+div.querySelector('[data-action="archive"]').onclick = () => archiveCard(colId, card.id);
+div.querySelector('[data-action="delete"]').onclick = () => deleteCard(colId, card.id);
 
-  `;
+return div;
 
-  const [btnEdit, btnArch, btnDel] = div.querySelectorAll(".icon");
-  btnEdit.onclick = () => openModal(card, colId);
-  btnArch.onclick = () => archiveCard(colId, card.id);
-  btnDel.onclick = () => deleteCard(colId, card.id);
-
-  return div;
 }
 function showHistory(card) {
   if (!card.history || card.history.length === 0) {
