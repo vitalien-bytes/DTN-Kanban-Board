@@ -110,9 +110,16 @@ function renderCard(colId, card) {
   div.dataset.card = card.id;
 
   div.ondragstart = (e) => {
-    e.dataTransfer.setData("cardId", card.id);
-    e.dataTransfer.setData("fromCol", colId);
-  };
+  div.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("cardId", card.id);
+  e.dataTransfer.setData("fromCol", colId);
+};
+
+div.ondragend = () => {
+  div.classList.remove("dragging");
+};
+
 
   div.innerHTML = `
     <div class="name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
