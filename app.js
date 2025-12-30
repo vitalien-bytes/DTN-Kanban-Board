@@ -158,12 +158,12 @@ div.ondragend = () => {
     </div>
     ${card.note ? `<div class="note">${escapeHtml(card.note)}</div>` : ""}
     <div class="card-actions">
-      <button class="icon" title="Modifier">✎</button>
-      <button class="icon" title="Archiver">🗄</button>
-      <button class="icon" title="Supprimer">🗑</button>
-      <button class="icon" title="Historique">📜</button>
+  <button class="icon" data-action="edit" title="Modifier">✎</button>
+  <button class="icon" data-action="history" title="Historique">📜</button>
+  <button class="icon" data-action="archive" title="Archiver">🗄</button>
+  <button class="icon" data-action="delete" title="Supprimer">🗑</button>
+</div>
 
-    </div>
   `;
 
   const [btnEdit, btnArch, btnDel] = div.querySelectorAll(".icon");
