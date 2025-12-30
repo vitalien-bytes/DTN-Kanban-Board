@@ -29,6 +29,7 @@ const m_lastname = document.getElementById("m_lastname");
 const m_firstname = document.getElementById("m_firstname");
 const m_tel = document.getElementById("m_tel");
 const m_city = document.getElementById("m_city");
+const m_date = document.getElementById("m_date");
 const m_work = document.getElementById("m_work");
 const m_note = document.getElementById("m_note");
 const m_col = document.getElementById("m_col");
@@ -250,6 +251,7 @@ function openModal(card=null, colId=null) {
   m_firstname.value = card?.firstname || "";
   m_tel.value = card?.tel || "";
   m_city.value = card?.city || "";
+  m_date.value = card?.date || "";
   m_work.value = card?.work || "Électricité";
   m_note.value = card?.note || "";
 
@@ -272,6 +274,7 @@ const data = {
   firstname: (m_firstname.value || "").trim(),
   tel: (m_tel.value || "").trim(),
   city: (m_city.value || "").trim(),
+  date: (m_date.value || "").trim(),
   work: (m_work.value || "").trim(),
   note: (m_note.value || "").trim(),
   history: editingCard?.history || [
