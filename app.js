@@ -28,7 +28,7 @@ const modal = document.getElementById("modal");
 const m_lastname = document.getElementById("m_lastname");
 const m_firstname = document.getElementById("m_firstname");
 const m_tel = document.getElementById("m_tel");
-const m_city = document.getElementById("m_city");
+const m_address = document.getElementById("m_address");
 const m_date = document.getElementById("m_date");
 const m_work = document.getElementById("m_work");
 const m_note = document.getElementById("m_note");
@@ -134,7 +134,7 @@ cardsEl.ondrop = (e) => {
 
 function renderCard(colId, card) {
   const div = document.createElement("div");
-  div.className = "card";
+  div.className = `card work-${(card.work || "autre").toLowerCase().replace(/[^a-z]/g, "")}`;
   div.draggable = true;
   div.dataset.card = card.id;
 
@@ -153,7 +153,7 @@ div.ondragend = () => {
 div.innerHTML = `
   <div class="name">${escapeHtml((card.lastname||"").toUpperCase())} ${escapeHtml(card.firstname||"")}</div>
   <div class="meta">
-    ${card.city ? `<span class="chip">📍 ${escapeHtml(card.city)}</span>` : ""}
+    ${card.address ? `<span class="chip">📍 ${escapeHtml(card.address)}</span>` : ""}
     ${card.work ? `<span class="chip">🛠 ${escapeHtml(card.work)}</span>` : ""}
     ${card.tel ? `<span class="chip">📞 ${escapeHtml(card.tel)}</span>` : ""}
   </div>
@@ -252,7 +252,7 @@ function openModal(card=null, colId=null) {
   m_lastname.value = card?.lastname || "";
   m_firstname.value = card?.firstname || "";
   m_tel.value = card?.tel || "";
-  m_city.value = card?.city || "";
+  m_address.value = card?.address || "";
   m_date.value = card?.date || "";
   m_work.value = card?.work || "Électricité";
   m_note.value = card?.note || "";
@@ -275,7 +275,7 @@ const data = {
   lastname: (m_lastname.value || "").trim(),
   firstname: (m_firstname.value || "").trim(),
   tel: (m_tel.value || "").trim(),
-  city: (m_city.value || "").trim(),
+  address: (m_address.value || "").trim(),
   date: (m_date.value || "").trim(),
   work: (m_work.value || "").trim(),
   note: (m_note.value || "").trim(),
