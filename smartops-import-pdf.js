@@ -1,9 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("pdfImport");
-  if (!input) {
-    alert("❌ input pdfImport introuvable");
-    return;
-  }
+  if (!input) return;
 
   const LS_KEY = "DTN_SMARTOPS_BOARD_V2";
 
@@ -11,62 +8,101 @@ document.addEventListener("DOMContentLoaded", () => {
     return "id_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
   }
 
+  function extract(regex, text) {
+    const match = text.match(regex);
+    return match ? match[1].trim() : "";
+  }
+
+  function getPhone(text) {
+    const match = text.match(/(0\d(?:[\s.\-]?\d{2}){4})/);
+    return match ? match[1].replace(/[^\d]/g, "") : "";
+  }
+
   input.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      let board = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      const reader = new FileReader();
 
-      if (!board || !Array.isArray(board.columns)) {
-        alert("❌ Board introuvable dans localStorage");
-        console.log("Contenu localStorage:", localStorage.getItem(LS_KEY));
-        return;
-      }
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
 
-      const targetCol =
-        board.columns.find(c => c.name === "À faire") ||
-        board.columns.find(c => c.id === "col-1") ||
-        board.columns[0];
+        let text = "";
 
-      const now = new Date().toLocaleString("fr-FR");
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(" ") + "\n";
+        }
 
-      const newCard = {
-        id: uid(),
-        lastname: file.name.replace(".pdf", "") + " - ENSIO",
-        firstname: "",
-        tel: "",
-        email: "",
-        address: "",
-        date: "",
-        work: "IRVE",
-        note: "Carte test créée depuis import PDF",
-        history: [
-          {
-            date: now,
-            action: "Création",
-            details: "Carte test créée"
-          }
-        ],
-        updatedAt: now,
-        createdAt: now
+        console.log("PDF TEXT:", text); // debug
+
+        // ======================
+        // EXTRACTION
+        // ======================
+
+        const lastname =
+          extract(/Contact sur site\s*:\s*([^\n]+)/i, text) ||
+          extract(/Nom client\s*:\s*([^\n]+)/i, text) ||
+          extract(/Nom du collaborateur\s*:\s*([^\n]+)/i, text) ||
+          "Client";
+
+        const phone = getPhone(text);
+
+        const address =
+          extract(/Adresse\s*:\s*([^\n]+France)/i, text) ||
+          extract(/Adresse\s*:\s*([^\n]+)/i, text) ||
+          "";
+
+        // ======================
+        // CREATION CARTE
+        // ======================
+
+        let board = JSON.parse(localStorage.getItem(LS_KEY));
+
+        const targetCol =
+          board.columns.find(c => c.name === "À faire") ||
+          board.columns[0];
+
+        const now = new Date().toLocaleString("fr-FR");
+
+        const newCard = {
+          id: uid(),
+          lastname: lastname + " - ENSIO",
+          firstname: "",
+          tel: phone,
+          email: "",
+          address: address,
+          date: "",
+          work: "IRVE",
+          note: "Import automatique PDF",
+          history: [
+            {
+              date: now,
+              action: "Création",
+              details: "Import PDF"
+            }
+          ],
+          updatedAt: now,
+          createdAt: now
+        };
+
+        targetCol.cards.unshift(newCard);
+
+        localStorage.setItem(LS_KEY, JSON.stringify(board));
+
+        alert("✅ Fiche client créée !");
+        location.reload();
       };
 
-      targetCol.cards = targetCol.cards || [];
-      targetCol.cards.unshift(newCard);
-
-      board.meta = board.meta || {};
-      board.meta.updatedAt = new Date().toISOString();
-
-      localStorage.setItem(LS_KEY, JSON.stringify(board));
-
-      alert("✅ Carte test créée");
-      location.reload();
+      reader.readAsArrayBuffer(file);
     } catch (err) {
       console.error(err);
-      alert("❌ Erreur : " + err.message);
-    } finally {
-      e.target.value = "";
+      alert("Erreur PDF : " + err.message);
     }
+
+    e.target.value = "";
   });
 });
