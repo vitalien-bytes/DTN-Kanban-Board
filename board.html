@@ -27,6 +27,9 @@
       <button class="btn primary" id="btnLoadDrive">Charger Drive</button>
       <button class="btn primary" id="btnSaveDrive">Sauver Drive</button>
       <button class="btn" id="btnPlanning">Planning</button>
+      <label class="btn file">
+  Import PDF <input type="file" id="pdfImport" accept="application/pdf"/>
+</label>
 
     </div>
   </header>
@@ -110,10 +113,11 @@
   </div>
 </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js"></script>
   <script src="app.js"></script>
+  <script src="smartops-import-pdf.js"></script>
 </body>
 </html>
-
 
 
 
