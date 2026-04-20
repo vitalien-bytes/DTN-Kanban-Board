@@ -58,7 +58,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
       text = cleanText(text);
       // ===== EXTRACTION =====
+// ===== TRAVAUX =====
 
+let travaux = [];
+
+function addIf(test, label) {
+  if (test && !travaux.includes(label)) travaux.push(label);
+}
+
+addIf(/terrassement/i.test(text), "Terrassement à prévoir");
+addIf(/massif béton/i.test(text), "Massif béton à créer");
+addIf(/fourreau/i.test(text), "Fourreau existant ou à prévoir");
+addIf(/percement/i.test(text), "Percement(s)");
+addIf(/carottage/i.test(text), "Carottage");
+addIf(/IRL/i.test(text), "Passage en IRL");
+addIf(/goulotte/i.test(text), "Passage en goulotte");
+addIf(/tableau/i.test(text), "Modification tableau électrique");
+addIf(/extérieur/i.test(text), "Installation extérieure");
+
+// 👉 la fameuse variable note
+const note =
+  travaux.length > 0
+    ? "Travaux : " + travaux.join(" | ")
+    : "";
 function extract(regex) {
   const m = text.match(regex);
   return m ? m[1].trim() : "";
