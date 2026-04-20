@@ -41,18 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-
-        const pageText = content.items
-          .map(item => item.str)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim();
-
+        const pageText = content.items.map(item => item.str).join(" ");
         text += pageText + "\n";
       }
-
-      console.log("=== TEXTE PDF ===");
-      console.log(text);
 
       const now = new Date().toLocaleString("fr-FR");
 
