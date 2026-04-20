@@ -99,7 +99,7 @@ const address =
   address: address,
   date: "",
   work: "IRVE",
-  note: text.slice(0, 1500),
+  note: note,
   history: [
     {
       date: now,
