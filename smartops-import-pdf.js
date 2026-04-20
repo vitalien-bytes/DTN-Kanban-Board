@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    console.log("pdfjsLib =", typeof pdfjsLib, pdfjsLib);
   const input = document.getElementById("pdfImport");
   if (!input) {
     alert("❌ input pdfImport introuvable");
