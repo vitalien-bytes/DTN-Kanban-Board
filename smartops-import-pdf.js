@@ -61,25 +61,63 @@ document.addEventListener("DOMContentLoaded", () => {
       const now = new Date().toLocaleString("fr-FR");
 
       const newCard = {
-        id: uid(),
-        lastname: file.name.replace(/\.pdf$/i, "") + " - ENSIO",
-        firstname: "",
-        tel: "",
-        email: "",
-        address: "",
-        date: "",
-        work: "IRVE",
-        note: text.slice(0, 1500),
-        history: [
-          {
-            date: now,
-            action: "Création",
-            details: "Carte créée depuis import PDF"
-          }
-        ],
-        updatedAt: now,
-        createdAt: now
-      };
+        // ===== EXTRACTION =====
+
+function extract(regex, text) {
+  const m = text.match(regex);
+  return m ? m[1].trim() : "";
+}
+
+function getPhone(text) {
+  const m = text.match(/0[1-9](?:[\s.\-]?\d{2}){4}/);
+  return m ? m[0].replace(/[^\d]/g, "") : "";
+}
+
+// NOM
+const lastname =
+  extract(/Contact sur site\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Téléphone/i, text) ||
+  extract(/Nom client\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Adresse/i, text) ||
+  extract(/Nom du collaborateur\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+(?:Référent technique|Date audit)/i, text) ||
+  extract(/Nom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Prénom/i, text) ||
+  file.name.replace(".pdf","");
+
+// PRENOM
+const firstname =
+  extract(/Prénom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+)/i, text) || "";
+
+// TEL
+const phone = getPhone(text);
+
+// ADRESSE
+const address =
+  extract(/Adresse\s*:?\s*(.+?)\s+INFORMATIONS/i, text) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Référent/i, text) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Date audit/i, text) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Type/i, text) ||
+  "";
+
+// ===== TRAVAUX =====
+
+let travaux = [];
+
+function addIf(test, label) {
+  if (test) travaux.push(label);
+}
+
+addIf(/terrassement/i.test(text), "Terrassement à prévoir");
+addIf(/massif béton/i.test(text), "Massif béton à créer");
+addIf(/fourreau existant/i.test(text), "Fourreau existant");
+addIf(/percement/i.test(text), "Percement(s)");
+addIf(/carottage/i.test(text), "Carottage");
+addIf(/IRL/i.test(text), "Passage en IRL");
+addIf(/goulotte/i.test(text), "Passage en goulotte");
+addIf(/tableau/i.test(text), "Modification tableau électrique");
+addIf(/extérieur/i.test(text), "Installation extérieure");
+
+const note =
+  travaux.length > 0
+    ? "Travaux à réaliser :\n- " + travaux.join("\n- ")
+    : "Import automatique PDF";
 
       targetCol.cards.unshift(newCard);
       board.meta = board.meta || {};
