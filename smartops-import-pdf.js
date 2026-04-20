@@ -2,7 +2,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("pdfImport");
 
   if (!input) {
-    alert("❌ pdfImport introuvable");
+    alert("❌ input pdfImport introuvable");
+    return;
+  }
+
+  if (typeof pdfjsLib === "undefined") {
+    alert("❌ PDF.js non chargé");
     return;
   }
 
@@ -16,16 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return (value || "").replace(/\s+/g, " ").trim();
   }
 
-  function extract(regex, text) {
-    const m = text.match(regex);
-    return m ? m[1].trim() : "";
-  }
-
-  function getPhone(text) {
-    const m = text.match(/0[1-9](?:[\s.\-]?\d{2}){4}/);
-    return m ? m[0].replace(/[^\d]/g, "") : "";
-  }
-
   input.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) {
@@ -34,11 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      if (typeof pdfjsLib === "undefined") {
-        alert("❌ PDF.js non chargé");
-        return;
-      }
-
       const raw = localStorage.getItem(LS_KEY);
       const board = JSON.parse(raw || "null");
 
@@ -54,8 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!targetCol.cards) targetCol.cards = [];
 
-      const typedarray = new Uint8Array(await file.arrayBuffer());
-      const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+      const fileBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise;
 
       let text = "";
 
@@ -68,65 +58,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       text = cleanText(text);
 
-      // ===== EXTRACTION =====
-
-      const lastname =
-        extract(/Contact sur site\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Téléphone/i, text) ||
-        extract(/Nom client\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Adresse/i, text) ||
-        extract(/Nom du collaborateur\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+(?:Référent technique|Date audit)/i, text) ||
-        extract(/Nom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Prénom/i, text) ||
-        file.name.replace(".pdf", "");
-
-      const firstname =
-        extract(/Prénom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+)/i, text) || "";
-
-      const phone = getPhone(text);
-
-      const address =
-        extract(/Adresse\s*:?\s*(.+?)\s+INFORMATIONS/i, text) ||
-        extract(/Adresse\s*:?\s*(.+?)\s+Référent/i, text) ||
-        extract(/Adresse\s*:?\s*(.+?)\s+Date audit/i, text) ||
-        extract(/Adresse\s*:?\s*(.+?)\s+Type/i, text) ||
-        "";
-
-      let travaux = [];
-
-      function addIf(test, label) {
-        if (test) travaux.push(label);
-      }
-
-      addIf(/terrassement/i.test(text), "Terrassement à prévoir");
-      addIf(/massif béton/i.test(text), "Massif béton à créer");
-      addIf(/fourreau existant/i.test(text), "Fourreau existant");
-      addIf(/percement/i.test(text), "Percement(s)");
-      addIf(/carottage/i.test(text), "Carottage");
-      addIf(/IRL/i.test(text), "Passage en IRL");
-      addIf(/goulotte/i.test(text), "Passage en goulotte");
-      addIf(/tableau/i.test(text), "Modification tableau électrique");
-      addIf(/extérieur/i.test(text), "Installation extérieure");
-
-      const note =
-        travaux.length > 0
-          ? "Travaux à réaliser :\n- " + travaux.join("\n- ")
-          : "Import automatique PDF";
-
       const now = new Date().toLocaleString("fr-FR");
 
       const newCard = {
         id: uid(),
-        lastname: lastname + " - ENSIO",
-        firstname: firstname,
-        tel: phone,
+        lastname: file.name.replace(/\.pdf$/i, "") + " - ENSIO",
+        firstname: "",
+        tel: "",
         email: "",
-        address: address,
+        address: "",
         date: "",
         work: "IRVE",
-        note: note,
+        note: text ? text.slice(0, 1500) : "Import PDF sans texte détecté",
         history: [
           {
             date: now,
             action: "Création",
-            details: "Import PDF"
+            details: "Carte créée depuis import PDF"
           }
         ],
         updatedAt: now,
@@ -139,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       localStorage.setItem(LS_KEY, JSON.stringify(board));
 
-      alert("✅ Carte ajoutée avec le détail du PDF");
+      alert("✅ Carte ajoutée");
       location.reload();
     } catch (err) {
       console.error(err);
