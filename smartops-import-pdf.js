@@ -57,29 +57,59 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       text = cleanText(text);
+      // ===== EXTRACTION =====
+
+function extract(regex) {
+  const m = text.match(regex);
+  return m ? m[1].trim() : "";
+}
+
+// NOM
+const lastname =
+  extract(/Contact sur site\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Téléphone/i) ||
+  extract(/Nom client\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Adresse/i) ||
+  extract(/Nom du collaborateur\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+(?:Référent|Date)/i) ||
+  extract(/Nom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+?)\s+Prénom/i) ||
+  file.name.replace(".pdf","");
+
+// PRENOM
+const firstname =
+  extract(/Prénom\s*:?\s*([A-ZÀ-ÿ'’\-\s]+)/i) || "";
+
+// TELEPHONE
+const phoneMatch = text.match(/0[1-9](?:[\s.\-]?\d{2}){4}/);
+const phone = phoneMatch ? phoneMatch[0].replace(/[^\d]/g, "") : "";
+
+// ADRESSE
+const address =
+  extract(/Adresse\s*:?\s*(.+?)\s+INFORMATIONS/i) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Référent/i) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Date audit/i) ||
+  extract(/Adresse\s*:?\s*(.+?)\s+Type/i) ||
+  "";
 
       const now = new Date().toLocaleString("fr-FR");
 
       const newCard = {
-        id: uid(),
-        lastname: file.name.replace(/\.pdf$/i, "") + " - ENSIO",
-        firstname: "",
-        tel: "",
-        email: "",
-        address: "",
-        date: "",
-        work: "IRVE",
-        note: text ? text.slice(0, 1500) : "Import PDF sans texte détecté",
-        history: [
-          {
-            date: now,
-            action: "Création",
-            details: "Carte créée depuis import PDF"
-          }
-        ],
-        updatedAt: now,
-        createdAt: now
-      };
+  id: uid(),
+  lastname: lastname + " - ENSIO",
+  firstname: firstname,
+  tel: phone,
+  email: "",
+  address: address,
+  date: "",
+  work: "IRVE",
+  note: text.slice(0, 1500),
+  history: [
+    {
+      date: now,
+      action: "Création",
+      details: "Import PDF"
+    }
+  ],
+  updatedAt: now,
+  createdAt: now
+};
 
       targetCol.cards.unshift(newCard);
       board.meta = board.meta || {};
