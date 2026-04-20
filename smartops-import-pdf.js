@@ -1,12 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("pdfImport");
-  if (!input) {
-    alert("❌ input pdfImport introuvable");
-    return;
-  }
 
-  if (typeof pdfjsLib === "undefined") {
-    alert("❌ PDF.js non chargé dans board.html");
+  if (!input) {
+    alert("❌ pdfImport introuvable");
     return;
   }
 
@@ -16,12 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return "id_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
   }
 
-  input.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  input.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) {
+      alert("❌ Aucun fichier sélectionné");
+      return;
+    }
 
     try {
-      let board = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      const raw = localStorage.getItem(LS_KEY);
+      const board = JSON.parse(raw || "null");
 
       if (!board || !Array.isArray(board.columns)) {
         alert("❌ Board introuvable dans localStorage");
@@ -33,17 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         board.columns.find(c => c.id === "col-1") ||
         board.columns[0];
 
-      const typedarray = new Uint8Array(await file.arrayBuffer());
-      const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
-
-      let text = "";
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(" ");
-        text += pageText + "\n";
-      }
+      if (!targetCol.cards) targetCol.cards = [];
 
       const now = new Date().toLocaleString("fr-FR");
 
@@ -56,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
         address: "",
         date: "",
         work: "IRVE",
-        note: text.slice(0, 800),
+        note: "Carte créée depuis import PDF",
         history: [
           {
             date: now,
@@ -68,19 +58,17 @@ document.addEventListener("DOMContentLoaded", () => {
         createdAt: now
       };
 
-      targetCol.cards = targetCol.cards || [];
       targetCol.cards.unshift(newCard);
-
       board.meta = board.meta || {};
       board.meta.updatedAt = new Date().toISOString();
 
       localStorage.setItem(LS_KEY, JSON.stringify(board));
 
-      alert("✅ Carte créée avec texte du PDF");
+      alert("✅ Carte ajoutée");
       location.reload();
     } catch (err) {
       console.error(err);
-      alert("❌ Erreur : " + err.message);
+      alert("❌ Erreur JS : " + err.message);
     } finally {
       e.target.value = "";
     }
