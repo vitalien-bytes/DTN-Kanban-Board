@@ -138,6 +138,9 @@ const address =
       board.meta.updatedAt = new Date().toISOString();
 
       localStorage.setItem(LS_KEY, JSON.stringify(board));
+      if (typeof driveWrite === "function") {
+  driveWrite(false);
+}
 
       alert("✅ Carte ajoutée");
       location.reload();
