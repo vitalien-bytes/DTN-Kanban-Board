@@ -52,6 +52,7 @@ function saveLocal() {
   state.meta = state.meta || {};
   state.meta.updatedAt = new Date().toISOString();
   localStorage.setItem(LS_KEY, JSON.stringify(state));
+  scheduleAutoSave();
 }
 
 function loadLocal() {
