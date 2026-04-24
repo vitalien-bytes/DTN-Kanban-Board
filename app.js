@@ -18,6 +18,17 @@ const defaultBoard = {
 
 let state = loadLocal() || structuredClone(defaultBoard);
 let editingCard = null;
+let autoSaveTimer = null;
+
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    driveWrite(false).catch(err => {
+      console.error("Auto-save Drive error:", err);
+      setStatus("⚠️ Erreur sauvegarde auto Drive");
+    });
+  }, 1200);
+}
 
 const elBoard = document.getElementById("board");
 const elStatus = document.getElementById("status");
